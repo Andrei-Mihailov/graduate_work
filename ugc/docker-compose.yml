@@ -1,0 +1,97 @@
+version: '3'
+services:
+  ugc-api:
+    build:
+      context: .
+      dockerfile: Dockerfile-ugc-api
+    container_name: ugc-api
+    environment:
+      - WORKERS=1
+      - PORT_APP=5000
+      - SENTRY_DSN=<https://7e322a912461958b85dcdf23716aeff5@o4507457845592064.ingest.de.sentry.io/4507457848016976>
+    depends_on:
+      - kafka
+    ports:
+      - "5000:5000"
+
+  ugc-etl:
+    build:
+      context: .
+      dockerfile: Dockerfile-ugc-etl
+    container_name: ugc-etl
+    depends_on:
+      kafka:
+        condition: service_started
+      clickhouse:
+        condition: service_healthy
+
+  kafka:
+    image: bitnami/kafka:3.7
+    container_name: ugc-kafka
+    ports:
+      - "9094:9094"
+    environment:
+      - KAFKA_ENABLE_KRAFT=yes
+      - KAFKA_CFG_PROCESS_ROLES=broker,controller
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,EXTERNAL://127.0.0.1:9094
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_BROKER_ID=0
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka:9093
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_CFG_NODE_ID=0
+      - KAFKA_CFG_DELETE_TOPIC_ENABLE=true
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+      - KAFKA_KRAFT_CLUSTER_ID=NzuVY3xIRF2x-SG4uzn4SQ
+    volumes:
+      - kafka_data:/bitnami/kafka
+    healthcheck:
+      test: nc -z kafka 9092 || exit -1
+      start_period: 15s
+      interval: 5s
+      timeout: 10s
+      retries: 10
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.7.2
+    container_name: ugc-kafka-ui
+    ports:
+      - "8080:8080"
+    depends_on:
+      - kafka
+    environment:
+      - KAFKA_CLUSTERS_0_BOOTSTRAP_SERVERS=kafka:9092
+      - KAFKA_CLUSTERS_0_NAME=kraft
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:23.8
+    container_name: ugc-clickhouse
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    environment:
+      - CLICKHOUSE_DB=movies_analysis
+      - CLICKHOUSE_USER=app
+      - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1
+      - CLICKHOUSE_PASSWORD=qwe123
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse/
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1
+      interval: 10s
+      timeout: 10s
+      retries: 20
+
+  cloudbeaver:
+    image: dbeaver/cloudbeaver:24.0.5
+    container_name: dbeaver
+    ports:
+      - '8978:8978'
+    volumes:
+      - cloudbeaver:/opt/cloudbeaver/workspace
+
+volumes:
+  kafka_data:
+  clickhouse_data:
+  cloudbeaver:
