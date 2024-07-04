@@ -1,0 +1,11 @@
+pydantic==2.6.3
+pydantic-settings==2.2.1
+orjson==3.8.6
+uvicorn==0.30.1
+fastapi==0.110.0
+aio-pika==9.4.1
+SQLAlchemy==2.0.31
+backoff==2.2.1
+psycopg2_binary==2.9.9
+asyncpg==0.29.0
+requests==2.31.0
