@@ -27,7 +27,7 @@ class Genre(UUIDMixin, TimeStampedMixin):
         return self.name
 
     class Meta:
-        db_table = 'genre'
+        db_table = "genre"
         verbose_name = "Жанр"
         verbose_name_plural = "Жанры"
 
@@ -60,7 +60,7 @@ class Filmwork(UUIDMixin, TimeStampedMixin):
         return self.title
 
     class Meta:
-        db_table = 'film_work'
+        db_table = "film_work"
         verbose_name = "Кинопроизведение"
         verbose_name_plural = "Кинопроизведения"
 
@@ -71,7 +71,7 @@ class GenreFilmwork(UUIDMixin):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = 'genre_film_work'
+        db_table = "genre_film_work"
         unique_together = ("film_work", "genre")
 
 
@@ -82,7 +82,7 @@ class Person(UUIDMixin, TimeStampedMixin):
         return self.full_name
 
     class Meta:
-        db_table = 'person'
+        db_table = "person"
         verbose_name = "Персона"
         verbose_name_plural = "Персоны"
 
@@ -94,6 +94,5 @@ class PersonFilmwork(UUIDMixin):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = 'person_film_work'
+        db_table = "person_film_work"
         unique_together = ("film_work", "person", "role")
-
