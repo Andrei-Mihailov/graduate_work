@@ -5,7 +5,7 @@ import string
 from datetime import datetime
 from pydantic import BaseModel, validator
 
-from models import Base, Promocode, PromoUsage
+from models.models import Base, Promocode, PromoUsage
 from database import engine, get_db
 
 app = FastAPI()
