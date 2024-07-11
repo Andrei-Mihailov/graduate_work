@@ -40,6 +40,11 @@ jobs:
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --exclude=venv --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
+    - name: Check installed packages
+      run: |
+        source venv/bin/activate
+        pip list
+
     - name: Check directory structure
       run: |
         pwd
