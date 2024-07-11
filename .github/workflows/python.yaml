@@ -29,7 +29,7 @@ jobs:
         python -m pip install virtualenv
         python -m virtualenv venv
         source venv/bin/activate
-        python -m pip install flake8 pytest django
+        python -m pip install flake8 pytest django fastapi
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
     - name: Lint with flake8
