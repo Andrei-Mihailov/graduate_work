@@ -24,8 +24,12 @@ def configure_app(app: Flask):
     try:
         app.config["JWT_SECRET_KEY"] = settings.auth_jwt.secret_key
         app.config["JWT_ALGORITHM"] = settings.auth_jwt.algorithm
-        app.config["JWT_ACCESS_TOKEN_EXPIRES"] = settings.auth_jwt.access_token_expire_minutes
-        app.config["JWT_REFRESH_TOKEN_EXPIRES"] = settings.auth_jwt.refresh_token_expire_minutes
+        app.config["JWT_ACCESS_TOKEN_EXPIRES"] = (
+            settings.auth_jwt.access_token_expire_minutes
+        )
+        app.config["JWT_REFRESH_TOKEN_EXPIRES"] = (
+            settings.auth_jwt.refresh_token_expire_minutes
+        )
 
         jwt = JWTManager(app)
         capture_message("JWTManager configured successfully")

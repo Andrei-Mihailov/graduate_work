@@ -10,12 +10,10 @@ async_engine = create_async_engine(
     settings.db_connection,
     echo=settings.echo_db,
     poolclass=AsyncAdaptedQueuePool,
-    future=True
+    future=True,
 )
 async_session = async_sessionmaker(
-    bind=async_engine,
-    future=True,
-    expire_on_commit=False
+    bind=async_engine, future=True, expire_on_commit=False
 )
 base = declarative_base()
 

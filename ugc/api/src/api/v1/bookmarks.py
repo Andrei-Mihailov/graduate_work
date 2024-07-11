@@ -15,7 +15,9 @@ def add_bookmark(movie_id: int):
 
     bookmark_service = get_bookmark_service()
     bookmark_service.create({"movie_id": movie_id, "user_id": user_id})
-    capture_message(f"Bookmark has been added successfully for user {user_id} and movie {movie_id}")
+    capture_message(
+        f"Bookmark has been added successfully for user {user_id} and movie {movie_id}"
+    )
 
     return jsonify({"success": True}), HTTPStatus.OK
 
@@ -34,5 +36,7 @@ def delete_bookmark(movie_id: int):
 
     bookmark_service.delete(bookmark)
 
-    capture_message(f"Bookmark has been deleted successfully for user {user_id} and movie {movie_id}")
+    capture_message(
+        f"Bookmark has been deleted successfully for user {user_id} and movie {movie_id}"
+    )
     return jsonify({"success": True}), HTTPStatus.OK

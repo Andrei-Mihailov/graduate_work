@@ -41,7 +41,9 @@ def retrieve_reviews(movie_id):
 def delete_review(movie_id):
     user_id = get_jwt_identity()
     review_data = request.get_json()
-    review = Review.query.filter_by(movie_id=movie_id, user_id=user_id, **review_data).first()
+    review = Review.query.filter_by(
+        movie_id=movie_id, user_id=user_id, **review_data
+    ).first()
 
     if review is not None:
         db.session.delete(review)

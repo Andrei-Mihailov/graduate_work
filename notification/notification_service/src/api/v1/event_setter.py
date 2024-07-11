@@ -11,19 +11,19 @@ router = APIRouter()
 
 
 @router.post(
-        "/send-notification/email",
-        status_code=HTTPStatus.ACCEPTED,
-        summary="Отправка уведомления",
-        description="Отправка уведомлений одному или группе пользователей",
-        tags=["Уведомление"]
+    "/send-notification/email",
+    status_code=HTTPStatus.ACCEPTED,
+    summary="Отправка уведомления",
+    description="Отправка уведомлений одному или группе пользователей",
+    tags=["Уведомление"],
 )
 async def send_data_to_queue(
     event: RequestEventModel,
     broker_service: BrokerService = Depends(get_broker_service),
-    user_service: UserService = Depends(get_user_service)
+    user_service: UserService = Depends(get_user_service),
 ):
     print(event)
-    if event.type_event == 'personal':
+    if event.type_event == "personal":
         user = await user_service.get_user_by_id(id=event.recipient)
         if not user:
             return HTTPStatus.NOT_FOUND

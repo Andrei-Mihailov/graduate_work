@@ -77,9 +77,9 @@ class Notification(models.Model):
         context = {
             "title": self.template.title,
             "text": self.template.content,
-            "username": usernames
-            if self.type == NotificationTypeChoice.GROUP
-            else usernames[0],
+            "username": (
+                usernames if self.type == NotificationTypeChoice.GROUP else usernames[0]
+            ),
         }
         url = settings.EVENT_URL
 

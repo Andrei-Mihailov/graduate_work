@@ -34,7 +34,9 @@ class BrokerService:
         data = self.create_message(event, user)
         await self.send_message(queue_name=f"email.{event.type_event}", data=data)
 
-    async def put_many_message_to_queue(self, event: RequestEventModel, user_list: list[UserModel]):
+    async def put_many_message_to_queue(
+        self, event: RequestEventModel, user_list: list[UserModel]
+    ):
         for user in user_list:
             data = self.create_message(event, user)
             await self.send_message(queue_name=f"email.{event.type_event}", data=data)

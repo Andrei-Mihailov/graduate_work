@@ -28,9 +28,13 @@ def send_message_to_kafka(type_event: str):
     data["date_event"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     try:
-        capture_message(f"Sending message to Kafka with event type: {type_event} and data: {data}")
+        capture_message(
+            f"Sending message to Kafka with event type: {type_event} and data: {data}"
+        )
         process_load_kafka(key=type_event.encode(), value=json.dumps(data).encode())
-        capture_message(f"Message sent to Kafka successfully for event type: {type_event}")
+        capture_message(
+            f"Message sent to Kafka successfully for event type: {type_event}"
+        )
         return jsonify({"status": "Message sent to Kafka"}), HTTPStatus.OK
     except Exception as e:
         capture_message("Failed to send message to Kafka.")

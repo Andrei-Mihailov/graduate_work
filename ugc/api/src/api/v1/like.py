@@ -73,4 +73,7 @@ def get_likes(movie_id):
     movie = Movie.query.get(movie_id)
     if not movie:
         return jsonify({"error": "Movie not found"}), HTTPStatus.NOT_FOUND
-    return jsonify({"likes": movie.like_count, "dislikes": movie.dislike_count}), HTTPStatus.OK
+    return (
+        jsonify({"likes": movie.like_count, "dislikes": movie.dislike_count}),
+        HTTPStatus.OK,
+    )

@@ -59,10 +59,14 @@ def test_retrieve_reviews(mock_query, client, access_token):
         Review(movie_id=123, user_id=1, content="Great movie!", rating=5)
     ]
 
-    response = client.get("/ugc/api/v1/123/review", headers={"Authorization": f"Bearer {access_token}"})
+    response = client.get(
+        "/ugc/api/v1/123/review", headers={"Authorization": f"Bearer {access_token}"}
+    )
 
     assert response.status_code == HTTPStatus.OK
-    assert response.json == [{"movie_id": 123, "user_id": 1, "content": "Great movie!", "rating": 5}]
+    assert response.json == [
+        {"movie_id": 123, "user_id": 1, "content": "Great movie!", "rating": 5}
+    ]
 
 
 @patch("models.review.Review.query")

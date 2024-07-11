@@ -19,6 +19,8 @@ def process_load_kafka(key, value):
     except Exception as exc:
         logger.exception(exc)
         sentry_sdk.capture_exception(exc)
-        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, description=str(exc))
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, description=str(exc)
+        )
     finally:
         producer.close()

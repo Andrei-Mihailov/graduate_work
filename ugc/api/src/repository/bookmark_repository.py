@@ -42,7 +42,11 @@ class BookmarkSQLAlchemyRepository:
 
     def get_by_movie_id_and_user_id(self, movie_id: str, user_id: str):
         try:
-            return self.db.query(Bookmark).filter_by(movie_id=movie_id, user_id=user_id).first()
+            return (
+                self.db.query(Bookmark)
+                .filter_by(movie_id=movie_id, user_id=user_id)
+                .first()
+            )
         except Exception as e:
             sentry_sdk.capture_exception(e)
             raise e

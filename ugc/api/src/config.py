@@ -18,7 +18,9 @@ class Settings(BaseSettings):
     MAX_TRIES: int = Field(env="MAX_TRIES", default=5)
     DEBUG: bool = Field(env="DEBUG", default=True)
 
-    AUTH_API_ME_URL: str = Field("http://auth_service:8000/auth/api/v1/users/me", env="AUTH_API_ME_URL")
+    AUTH_API_ME_URL: str = Field(
+        "http://auth_service:8000/auth/api/v1/users/me", env="AUTH_API_ME_URL"
+    )
 
     # Настройки postgres
     db_name: str = Field("", env="DB_NAME")

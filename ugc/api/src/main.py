@@ -13,11 +13,11 @@ app = Flask(__name__)
 api = Api(app)
 
 
-app.config['SQLALCHEMY_DATABASE_URI'] = (
+app.config["SQLALCHEMY_DATABASE_URI"] = (
     f"postgresql+asyncpg://{pg_config_data.user}:{pg_config_data.password}@{pg_config_data.host}:"
     f"{pg_config_data.port}/{pg_config_data.dbname}"
 )
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
 

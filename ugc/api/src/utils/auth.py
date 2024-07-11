@@ -39,7 +39,9 @@ class JWTBearer:
         def wrapper(*args, **kwargs):
             credentials = request.headers.get("Authorization")
             if not credentials:
-                raise HTTPException(description="Invalid authorization code.", code=Forbidden.code)
+                raise HTTPException(
+                    description="Invalid authorization code.", code=Forbidden.code
+                )
             if not credentials.startswith("Bearer "):
                 raise HTTPException(
                     description="Only Bearer token might be accepted",
@@ -48,7 +50,9 @@ class JWTBearer:
             token = credentials.split()[1]
             decoded_token = self.parse_token(token)
             if not decoded_token:
-                raise HTTPException(description="Invalid or expired token.", code=Forbidden.code)
+                raise HTTPException(
+                    description="Invalid or expired token.", code=Forbidden.code
+                )
 
             if self.check_user:
                 loop = asyncio.get_event_loop()
@@ -59,7 +63,9 @@ class JWTBearer:
                     )
                 )
                 if response.status != HTTPStatus.ACCEPTED:
-                    raise HTTPException(description="User doesn't exist", code=Forbidden.code)
+                    raise HTTPException(
+                        description="User doesn't exist", code=Forbidden.code
+                    )
 
             return f(*args, **kwargs)
 
@@ -73,7 +79,9 @@ class JWTBearer:
             return {}
 
     @staticmethod
-    async def check(query: str, params: dict = None, headers: dict = None, json: dict = None):
+    async def check(
+        query: str, params: dict = None, headers: dict = None, json: dict = None
+    ):
         if params is None:
             params = {}
         if headers is None:

@@ -42,7 +42,9 @@ def access_token(app):
 def test_add_like(mock_session, mock_query, client, access_token):
     mock_query.filter_by.return_value.first.return_value = None
 
-    response = client.post("/ugc/api/v1/123/like", headers={"Authorization": f"Bearer {access_token}"})
+    response = client.post(
+        "/ugc/api/v1/123/like", headers={"Authorization": f"Bearer {access_token}"}
+    )
 
     assert response.status_code == HTTPStatus.OK
     assert mock_session.add.called
@@ -54,7 +56,9 @@ def test_add_like(mock_session, mock_query, client, access_token):
 def test_add_dislike(mock_session, mock_query, client, access_token):
     mock_query.filter_by.return_value.first.return_value = None
 
-    response = client.post("/ugc/api/v1/123/dislike", headers={"Authorization": f"Bearer {access_token}"})
+    response = client.post(
+        "/ugc/api/v1/123/dislike", headers={"Authorization": f"Bearer {access_token}"}
+    )
 
     assert response.status_code == HTTPStatus.OK
     assert mock_session.add.called
@@ -68,7 +72,9 @@ def test_increment_like(mock_session, mock_query, client, access_token):
     mock_like = Like(movie_id=123, user_id=1, like=1, dislike=0)
     mock_query.filter_by.return_value.first.return_value = mock_like
 
-    response = client.post("/ugc/api/v1/123/like", headers={"Authorization": f"Bearer {access_token}"})
+    response = client.post(
+        "/ugc/api/v1/123/like", headers={"Authorization": f"Bearer {access_token}"}
+    )
 
     assert response.status_code == HTTPStatus.OK
     assert mock_like.like == 2
@@ -81,7 +87,9 @@ def test_increment_dislike(mock_session, mock_query, client, access_token):
     mock_like = Like(movie_id=123, user_id=1, like=0, dislike=1)
     mock_query.filter_by.return_value.first.return_value = mock_like
 
-    response = client.post("/ugc/api/v1/123/dislike", headers={"Authorization": f"Bearer {access_token}"})
+    response = client.post(
+        "/ugc/api/v1/123/dislike", headers={"Authorization": f"Bearer {access_token}"}
+    )
 
     assert response.status_code == HTTPStatus.OK
     assert mock_like.dislike == 2

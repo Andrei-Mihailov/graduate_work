@@ -17,10 +17,13 @@ from services.broker_service import broker_service
 async def lifespan(app: FastAPI):
     broker_service.connection = await connect_robust(settings.rabbit_connection)
     broker_service.channel = await broker_service.connection.channel()
-    broker_service.exchange = await broker_service.channel.declare_exchange(settings.rabbit_exchange)
+    broker_service.exchange = await broker_service.channel.declare_exchange(
+        settings.rabbit_exchange
+    )
     yield
     await broker_service.channel.close()
     await broker_service.connection.close()
+
 
 app = FastAPI(
     lifespan=lifespan,
