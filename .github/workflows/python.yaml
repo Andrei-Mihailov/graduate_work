@@ -63,24 +63,4 @@ jobs:
         source venv/bin/activate
         pytest
 
-    - name: Build and push Docker image
-      env:
-        IMAGE_NAME: ${{ secrets.DOCKER_IMAGE_NAME }}
-        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-        DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-      run: |
-        echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
-        docker build -t $IMAGE_NAME:latest .
-        docker push $IMAGE_NAME:latest
-
-    - name: Test Docker image
-      run: |
-        docker run --rm ${{ secrets.DOCKER_IMAGE_NAME }}:latest pytest
-
-    - name: Deploy to Kubernetes
-      if: github.ref == 'refs/heads/main'
-      env:
-        KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
-      run: |
-        echo "$KUBE_CONFIG" | base64 --decode > kubeconfig
-        kubectl --kubeconfig=kubeconfig apply -f k8s/
+    
