@@ -1,5 +1,5 @@
 from fastapi.testclient import TestClient
-from loyalty.src.main import app
+from src.main import app
 
 client = TestClient(app)
 
