@@ -1,44 +1,75 @@
-from sqlalchemy import (
-    Column,
-    Integer,
-    String,
-    Date,
-    Boolean,
-    DECIMAL,
-    ForeignKey,
-    TIMESTAMP,
-)
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, String, Integer, Float, Boolean, ForeignKey, DateTime
+from sqlalchemy.orm import relationship, declarative_base
+from datetime import datetime
 
 Base = declarative_base()
 
 
-class Promocode(Base):
-    __tablename__ = "promocodes"
+class PromoCode(Base):
+    __tablename__ = "promo_codes"
+
     id = Column(Integer, primary_key=True, index=True)
-    code = Column(String, unique=True, index=True, nullable=False)
-    discount_type = Column(String, nullable=False)  # "fixed", "percentage", "trial"
-    discount_value = Column(DECIMAL, nullable=False)  # сумма скидки или процент
-    expiration_date = Column(Date)
-    usage_limit = Column(
-        Integer
-    )  # ограничение на количество использований (NULL для неограниченного)
+    code = Column(String, unique=True, index=True)
+    discount = Column(Float)
     is_active = Column(Boolean, default=True)
-    created_at = Column(TIMESTAMP, server_default="CURRENT_TIMESTAMP")
+    expiry_date = Column(DateTime, default=datetime.utcnow)
 
 
-class PromoUsage(Base):
-    __tablename__ = "promo_usage"
+class Tariff(Base):
+    __tablename__ = "tariffs"
+
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, nullable=False)
-    promocode_id = Column(Integer, ForeignKey("promocodes.id"), nullable=False)
-    used_at = Column(TIMESTAMP, server_default="CURRENT_TIMESTAMP")
-    is_successful = Column(Boolean, default=False)
-
-    promocode = relationship("Promocode", back_populates="usages")
+    name = Column(String, index=True)
+    price = Column(Float)
+    description = Column(String)
 
 
-Promocode.usages = relationship(
-    "PromoUsage", order_by=PromoUsage.id, back_populates="promocode"
-)
+class Purchase(Base):
+    __tablename__ = "purchases"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    tariff_id = Column(Integer, ForeignKey("tariffs.id"))
+    promo_code_id = Column(Integer, ForeignKey("promo_codes.id"), nullable=True)
+    total_price = Column(Float)
+    purchase_date = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="purchases")
+    tariff = relationship("Tariff")
+    promo_code = relationship("PromoCode")
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True)
+    email = Column(String, unique=True, index=True)
+    hashed_password = Column(String)
+    is_active = Column(Boolean, default=True)
+    group_id = Column(Integer, ForeignKey("groups.id"))
+
+    purchases = relationship("Purchase", back_populates="user")
+    group = relationship("Group", back_populates="users")
+
+
+class Group(Base):
+    __tablename__ = "groups"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True)
+    description = Column(String)
+
+    users = relationship("User", back_populates="group")
+
+
+class UsageLog(Base):
+    __tablename__ = "usage_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    promo_code_id = Column(Integer, ForeignKey("promo_codes.id"))
+    usage_date = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User")
+    promo_code = relationship("PromoCode")

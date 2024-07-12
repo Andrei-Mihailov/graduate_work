@@ -7,8 +7,17 @@ from pydantic import BaseModel, validator
 
 from models import Base, Promocode, PromoUsage
 from database import engine, get_db
+from config import pg_config_data
+from sqlalchemy import create_engine
 
 app = FastAPI()
+
+DATABASE_URL = (
+    f"postgresql+asyncpg://{pg_config_data.user}:{pg_config_data.password}@{pg_config_data.host}:"
+    f"{pg_config_data.port}/{pg_config_data.dbname}"
+)
+
+engine = create_engine(DATABASE_URL)
 
 # Создаем таблицы в базе данных
 Base.metadata.create_all(bind=engine)
