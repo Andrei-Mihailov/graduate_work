@@ -118,7 +118,7 @@ if __name__ == "__main__":
         create_superuser()
     else:
         options = {
-            "bind": "%s:%s" % ("0.0.0.0", "8000"),
+            "bind": "%s:%s" % ("0.0.0.0", "8080"),
             "workers": number_of_workers(),
             "worker_class": "uvicorn.workers.UvicornWorker",
         }
