@@ -1,2 +1,0 @@
-class TemplateNotExist(Exception):
-    pass
