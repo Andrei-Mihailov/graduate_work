@@ -23,35 +23,6 @@ engine = create_engine(DATABASE_URL)
 Base.metadata.create_all(bind=engine)
 
 
-class PromocodeCreate(BaseModel):
-    discount_type: str
-    discount_value: float
-    expiration_date: datetime = None
-    usage_limit: int = None
-
-    @validator("discount_type")
-    def validate_discount_type(cls, v):
-        if v not in ("fixed", "percentage", "trial"):
-            raise ValueError("Invalid discount type")
-        return v
-
-
-@app.post("/generate_promocode/")
-def generate_promocode(promo: PromocodeCreate, db: Session = Depends(get_db)):
-    code = "".join(random.choices(string.ascii_uppercase + string.digits, k=10))
-    new_promocode = Promocode(
-        code=code,
-        discount_type=promo.discount_type,
-        discount_value=promo.discount_value,
-        expiration_date=promo.expiration_date,
-        usage_limit=promo.usage_limit,
-    )
-    db.add(new_promocode)
-    db.commit()
-    db.refresh(new_promocode)
-    return {"code": new_promocode.code}
-
-
 class ApplyPromocode(BaseModel):
     code: str
     user_id: int
@@ -91,31 +62,6 @@ def apply_promocode(apply: ApplyPromocode, db: Session = Depends(get_db)):
         "discount_type": promocode.discount_type,
         "discount_value": promocode.discount_value,
     }
-
-
-class CancelPromocode(BaseModel):
-    user_id: int
-    promocode_id: int
-
-
-@app.post("/cancel_promocode/")
-def cancel_promocode(cancel: CancelPromocode, db: Session = Depends(get_db)):
-    promo_usage = (
-        db.query(PromoUsage)
-        .filter_by(
-            user_id=cancel.user_id,
-            promocode_id=cancel.promocode_id,
-            is_successful=False,
-        )
-        .first()
-    )
-    if not promo_usage:
-        raise HTTPException(status_code=404, detail="Promocode usage not found")
-
-    db.delete(promo_usage)
-    db.commit()
-
-    return {"message": "Promocode usage canceled"}
 
 
 @app.get("/")
