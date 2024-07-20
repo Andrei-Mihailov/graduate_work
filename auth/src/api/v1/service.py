@@ -41,8 +41,8 @@ async def check_jwt(request: Request, service: UserService = Depends(get_user_se
     payload = decode_jwt(jwt_token=tokens.access_token)
     if check_date_and_type_token(payload, "access"):
         # проверка access токена в блэк листе redis
-        if await service.get_from_black_list(tokens.access_token):
-            raise credentials_exception
+        if not await service.get_from_black_list(tokens.access_token):
+            return payload
     raise credentials_exception
 
 

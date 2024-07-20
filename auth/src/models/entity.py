@@ -56,6 +56,7 @@ class User(Base):
         ForeignKey("roles.id", ondelete="CASCADE"), default=None, nullable=True
     )
     role: Mapped[Roles] = relationship("Roles", back_populates="users")
+    is_staff: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)
 
     def __init__(
@@ -64,12 +65,14 @@ class User(Base):
         password: str,
         first_name: str = None,
         last_name: str = None,
+        is_staff: bool = False,
         is_superuser: bool = False,
     ) -> None:
         self.email = email
         self.password = hash_password(password)
         self.first_name = first_name
         self.last_name = last_name
+        self.is_staff = is_staff
         self.is_superuser = is_superuser
 
     def check_password(self, password: str) -> bool:

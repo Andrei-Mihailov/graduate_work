@@ -1,14 +1,16 @@
 from pydantic import BaseModel, Field
 from typing import Union
 
-from models.value_objects import UserID
-
 
 class UserSchema(BaseModel):
-    uuid: UserID
+    uuid: str
     email: str
+    role: Union[str, None]
     first_name: Union[str, None]
     last_name: Union[str, None]
+    is_staff: Union[bool, None]
+    active: Union[bool, None]
+    is_superuser: Union[bool, None]
 
 
 class UserParams(BaseModel):

@@ -40,14 +40,14 @@ class CustomBackend(BaseBackend):
             data = AnonymousUser().__dict__
 
         try:
-            user, _ = User.objects.get_or_create(id=data.get('uuid', 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'))
-            user.email = data.get('email', 'anonym')
-            user.first_name = data.get('first_name', 'anonym')
-            user.last_name = data.get('last_name', 'anonym')
-            user.is_staff = data.get('role', None) == Roles.ADMIN or data.get('is_superuser', False)
-            user.is_superuser = data.get('is_superuser', False)
-            user.is_active = data.get('active', True)
-            user.save()
+            user, created = User.objects.get_or_create(email=data.get('email'))
+            if created:
+                user.first_name = data.get('first_name', 'anonym')
+                user.last_name = data.get('last_name', 'anonym')
+                user.is_staff = data.get('is_staff', None)
+                user.is_superuser = data.get('is_superuser', False)
+                user.is_active = data.get('active', True)
+                user.save()
         except Exception:
             return None
 

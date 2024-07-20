@@ -15,7 +15,7 @@ class PromoCode(models.Model):
         return self.code
 
     class Meta:
-        db_table = "promo_codes"  # "content\".\"promo_codes"
+        db_table = "promo_codes"
         verbose_name = "Промокод"
         verbose_name_plural = "Промокоды"
 
@@ -26,7 +26,7 @@ class Tariff(models.Model):
     description = models.CharField(max_length=255)
 
     class Meta:
-        db_table = "tariffs"  # "content\".\"tariffs"
+        db_table = "tariffs"
         verbose_name = "Тариф"
         verbose_name_plural = "Тарифы"
 
@@ -42,19 +42,6 @@ class Purchase(models.Model):
     purchase_date = models.DateField(auto_now_add=True)
 
     class Meta:
-        db_table = "purchases"  # "content\".\"purchases"
-        verbose_name = "Покупка"
-        verbose_name_plural = "Покупки"
-
-
-class UsageLog(models.Model):
-    user = models.ForeignKey("users.User",
-                             on_delete=models.DO_NOTHING)
-    promo_code = models.ForeignKey(PromoCode,
-                                   on_delete=models.DO_NOTHING)
-    usage_date = models.DateField(auto_now_add=True)
-
-    class Meta:
-        db_table = "usage_logs"  # "content\".\"usage_logs"
+        db_table = "purchases"
         verbose_name = "Покупка"
         verbose_name_plural = "Покупки"

@@ -64,9 +64,4 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
-MEDIA_URL = '/movies/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'movies')
-
-AUTH_USER_MODEL = "users.User"
-
 AUTH_API_LOGIN_URL = os.environ.get('AUTH_API_LOGIN_URL')

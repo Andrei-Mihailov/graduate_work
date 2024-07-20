@@ -46,6 +46,8 @@ async def login(
         first_name=user.first_name,
         last_name=user.last_name,
         is_superuser=user.is_superuser,
+        is_staff=user.is_staff,
+        active=user.active,
         role=user.role
     )
     response = JSONResponse(content=user_schema.model_dump())
@@ -71,10 +73,14 @@ async def user_registration(
     user = await user_service.create_user(user_params)
     if user is not None:
         return UserSchema(
-            uuid=user.id,
+            uuid=str(user.id),
             email=user.email,
             first_name=user.first_name,
             last_name=user.last_name,
+            is_superuser=user.is_superuser,
+            is_staff=user.is_staff,
+            active=user.active,
+            role=user.role
         )
 
     raise HTTPException(
@@ -101,10 +107,14 @@ async def change_user_info(
     tokens = get_tokens_from_cookie(request)
     change_user = await user_service.change_user_info(tokens.access_token, user_params)
     return UserSchema(
-        uuid=change_user.id,
+        uuid=str(change_user.id),
         email=change_user.email,
         first_name=change_user.first_name,
         last_name=change_user.last_name,
+        is_superuser=change_user.is_superuser,
+        is_staff=change_user.is_staff,
+        active=change_user.active,
+        role=change_user.role
     )
 
 
