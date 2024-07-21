@@ -1,28 +1,13 @@
-import sentry_sdk
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
-from fastapi.exceptions import RequestValidationError
-from starlette.exceptions import HTTPException as StarletteHTTPException
+from fastapi import Depends, HTTPException, status
+from functools import lru_cache
+from sqlalchemy.ext.asyncio import AsyncSession
+import sentry_sdk  # Импортируем Sentry SDK
 
+from models.entity import Authentication
+from .base_service import BaseService
+from .utils import decode_jwt
 from db.postgres_db import get_session
 from db.redis_db import RedisCache, get_redis
-
-sentry_sdk.init("YOUR_SENTRY_DSN")  # Initialize Sentry SDK with your DSN
-
-app = FastAPI()
-
-
-@app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    sentry_sdk.capture_exception(exc)
-    return JSONResponse(status_code=422, content={"error": "Неверный запрос"})
-
-
-@app.exception_handler(StarletteHTTPException)
-async def http_exception_handler(request: Request, exc: StarletteHTTPException):
-    sentry_sdk.capture_exception(exc)
-    return JSONResponse(status_code=exc.status_code, content={"error": exc.detail})
-
 
 class AuthService(BaseService):
     def __init__(self, cache: RedisCache, storage: AsyncSession):
@@ -34,11 +19,8 @@ class AuthService(BaseService):
             # добавление в бд pg данных об аутентификации модель Authentication
             await self.create_new_instance(auth_params)
         except Exception as e:
-            sentry_sdk.capture_exception(e)  # Capture exception with Sentry
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Ошибка создания новой аутентификации",
-            )
+            sentry_sdk.capture_exception(e)
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
 
     async def login_history(
         self, access_token: str, limit: int = 10, page_number: int = 1
@@ -52,17 +34,15 @@ class AuthService(BaseService):
             )
             if auths_list is None:
                 raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Пользователь не найден",
+                    status_code=status.HTTP_404_NOT_FOUND, detail="user not found"
                 )
             return auths_list
+        except HTTPException as e:
+            sentry_sdk.capture_exception(e)
+            raise
         except Exception as e:
-            sentry_sdk.capture_exception(e)  # Capture exception with Sentry
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Ошибка получения истории авторизаций",
-            )
-
+            sentry_sdk.capture_exception(e)
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
 
 @lru_cache()
 def get_auth_service(
