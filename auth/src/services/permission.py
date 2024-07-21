@@ -6,6 +6,7 @@ from .base_service import BaseService
 from db.redis_db import RedisCache, get_redis
 from db.postgres_db import AsyncSession, get_session
 
+
 class PermissionService(BaseService):
     def __init__(self, cache: RedisCache, storage: AsyncSession):
         super().__init__(cache, storage)
@@ -39,6 +40,7 @@ class PermissionService(BaseService):
         except Exception as e:
             sentry_sdk.capture_exception(e)
             return False
+
 
 @lru_cache()
 def get_permission_service(

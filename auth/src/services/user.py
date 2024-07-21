@@ -18,6 +18,7 @@ from .utils import (
 from db.postgres_db import get_session
 from db.redis_db import RedisCache, get_redis
 
+
 class UserService(BaseService):
     def __init__(self, cache: RedisCache, storage: AsyncSession):
         super().__init__(cache, storage)
@@ -44,7 +45,10 @@ class UserService(BaseService):
             return user
         except Exception as e:
             sentry_sdk.capture_exception(e)
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Internal server error",
+            )
 
     async def change_user_info(self, access_token: str, user_data: dict) -> User:
         try:
@@ -67,7 +71,10 @@ class UserService(BaseService):
             return user
         except Exception as e:
             sentry_sdk.capture_exception(e)
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Internal server error",
+            )
 
     async def create_user(self, user_params) -> User:
         try:
@@ -75,7 +82,10 @@ class UserService(BaseService):
             return user
         except Exception as e:
             sentry_sdk.capture_exception(e)
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Internal server error",
+            )
 
     async def login(self, user_email: str, user_password: str) -> Tokens:
         try:
@@ -89,7 +99,10 @@ class UserService(BaseService):
             return Tokens(access_token=access_token, refresh_token=refresh_token), user
         except Exception as e:
             sentry_sdk.capture_exception(e)
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Internal server error",
+            )
 
     async def logout(self, access_token: str, refresh_token: str) -> bool:
         try:
@@ -98,7 +111,10 @@ class UserService(BaseService):
             return True
         except Exception as e:
             sentry_sdk.capture_exception(e)
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Internal server error",
+            )
 
     async def refresh_access_token(
         self, access_token: str, refresh_token: str
@@ -131,7 +147,10 @@ class UserService(BaseService):
                     )
         except Exception as e:
             sentry_sdk.capture_exception(e)
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Internal server error",
+            )
 
     async def check_permissions(
         self, access_token: str, required_permissions: str
@@ -157,7 +176,10 @@ class UserService(BaseService):
                 return False
         except Exception as e:
             sentry_sdk.capture_exception(e)
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Internal server error",
+            )
 
 
 @lru_cache()

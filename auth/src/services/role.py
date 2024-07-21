@@ -11,6 +11,7 @@ from models.user import User
 from db.postgres_db import AsyncSession, get_session
 from db.redis_db import RedisCache, get_redis
 
+
 class RoleService(BaseService):
     def __init__(self, cache: RedisCache, storage: AsyncSession):
         super().__init__(cache, storage)
@@ -92,6 +93,7 @@ class RoleService(BaseService):
         except Exception as e:
             sentry_sdk.capture_exception(e)
             return None
+
 
 @lru_cache()
 def get_role_service(

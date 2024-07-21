@@ -11,6 +11,7 @@ from models.value_objects import Role_names
 ACCESS_TOKEN_TYPE = "access"
 REFRESH_TOKEN_TYPE = "refresh"
 
+
 def create_jwt(token_type: str, token_data: dict, expire_minutes: int) -> str:
     jwt_payload = {"type": token_type}
     jwt_payload.update(token_data)
@@ -22,6 +23,7 @@ def create_jwt(token_type: str, token_data: dict, expire_minutes: int) -> str:
 
     jwt_payload.update(exp=expire_unix, iat=now_unix)
     return encode_jwt(jwt_payload)
+
 
 def create_access_token(user, user_role: Role_names = Role_names.user):
     # в теле токена хранится UUID пользователя, его роли и UUID самого токена
@@ -36,11 +38,13 @@ def create_access_token(user, user_role: Role_names = Role_names.user):
         ACCESS_TOKEN_TYPE, payload, settings.auth_jwt.access_token_expire_minutes
     )
 
+
 def create_refresh_token(user):
     payload = {"sub": str(user.id), "self_uuid": str(uuid.uuid4())}
     return create_jwt(
         REFRESH_TOKEN_TYPE, payload, settings.auth_jwt.refresh_token_expire_minutes
     )
+
 
 def encode_jwt(
     payload: dict,
@@ -48,6 +52,7 @@ def encode_jwt(
     algorithm: str = settings.auth_jwt.algorithm,
 ):
     return jwt.encode(payload, private_key, algorithm)
+
 
 def decode_jwt(
     jwt_token: str,
@@ -80,11 +85,13 @@ def decode_jwt(
         )
     return decoded
 
+
 def hash_password(
     password: str,
 ) -> bytes:
     hash_pass = settings.pwd_context.hash(password)
     return hash_pass
+
 
 def validate_password(hashed_password: bytes, password: str) -> bool:
     try:
@@ -94,6 +101,7 @@ def validate_password(hashed_password: bytes, password: str) -> bool:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="Incorrect password"
         )
+
 
 def check_date_and_type_token(payload: dict, type_token_need: str) -> bool:
     try:
@@ -116,4 +124,7 @@ def check_date_and_type_token(payload: dict, type_token_need: str) -> bool:
         return True
     except Exception as e:
         sentry_sdk.capture_exception(e)
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error",
+        )

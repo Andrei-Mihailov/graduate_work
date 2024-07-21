@@ -272,7 +272,9 @@ class BaseService(AbstractBaseService):
         self, key: Union[dict, str]
     ) -> Union[User, Authentication, None]:
         try:
-            data = await self.cache.get(json.dumps(key) if isinstance(key, dict) else key)
+            data = await self.cache.get(
+                json.dumps(key) if isinstance(key, dict) else key
+            )
             if not data:
                 return None
 
@@ -290,7 +292,11 @@ class BaseService(AbstractBaseService):
     async def add_to_white_list(self, token, token_type):
         payload = decode_jwt(jwt_token=token)
         key = "white_list:" + payload.get("self_uuid")
-        expire = settings.auth_jwt.refresh_token_expire_minutes if token_type == "refresh" else settings.auth_jwt.access_token_expire_minutes
+        expire = (
+            settings.auth_jwt.refresh_token_expire_minutes
+            if token_type == "refresh"
+            else settings.auth_jwt.access_token_expire_minutes
+        )
         await self._put_to_cache(key, token, expire)
 
     async def get_from_white_list(self, token):
@@ -306,7 +312,11 @@ class BaseService(AbstractBaseService):
     async def add_to_black_list(self, token, token_type):
         payload = decode_jwt(jwt_token=token)
         key = "black_list:" + payload.get("self_uuid")
-        expire = settings.auth_jwt.refresh_token_expire_minutes if token_type == "refresh" else settings.auth_jwt.access_token_expire_minutes
+        expire = (
+            settings.auth_jwt.refresh_token_expire_minutes
+            if token_type == "refresh"
+            else settings.auth_jwt.access_token_expire_minutes
+        )
         await self._put_to_cache(key, token, expire)
 
     async def get_from_black_list(self, token):

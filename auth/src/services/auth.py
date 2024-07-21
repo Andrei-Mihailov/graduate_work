@@ -11,15 +11,18 @@ sentry_sdk.init("YOUR_SENTRY_DSN")  # Initialize Sentry SDK with your DSN
 
 app = FastAPI()
 
+
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     sentry_sdk.capture_exception(exc)
     return JSONResponse(status_code=422, content={"error": "Неверный запрос"})
 
+
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
     sentry_sdk.capture_exception(exc)
     return JSONResponse(status_code=exc.status_code, content={"error": exc.detail})
+
 
 class AuthService(BaseService):
     def __init__(self, cache: RedisCache, storage: AsyncSession):
@@ -32,7 +35,10 @@ class AuthService(BaseService):
             await self.create_new_instance(auth_params)
         except Exception as e:
             sentry_sdk.capture_exception(e)  # Capture exception with Sentry
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Ошибка создания новой аутентификации")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Ошибка создания новой аутентификации",
+            )
 
     async def login_history(
         self, access_token: str, limit: int = 10, page_number: int = 1
@@ -46,12 +52,16 @@ class AuthService(BaseService):
             )
             if auths_list is None:
                 raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND, detail="Пользователь не найден"
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Пользователь не найден",
                 )
             return auths_list
         except Exception as e:
             sentry_sdk.capture_exception(e)  # Capture exception with Sentry
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Ошибка получения истории авторизаций")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Ошибка получения истории авторизаций",
+            )
 
 
 @lru_cache()
