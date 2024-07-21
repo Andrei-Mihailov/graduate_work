@@ -37,37 +37,34 @@ def async_cmd(func):
     @ft.wraps(func)
     def wrapper(*args, **kwargs):
         return asyncio.run(func(*args, **kwargs))
+
     return wrapper
 
 
 @click.command()
 @click.option(
-    '--email',
-    default='test',
-    prompt='Enter email',
-    help='email for the superuser')
+    "--email", default="test", prompt="Enter email", help="email for the superuser"
+)
 @click.option(
-    '--password',
-    default='test',
-    prompt='Enter password',
-    help='Password for the superuser')
+    "--password",
+    default="test",
+    prompt="Enter password",
+    help="Password for the superuser",
+)
 @async_cmd
 async def create_superuser(email, password):
     from models.entity import User
     from sqlalchemy.future import select
+
     async with postgres_db.async_session() as session:
         result = await session.execute(select(User).filter(User.email == email))
         existing_user = result.scalars().first()
         if existing_user:
-            click.echo('User with this email already exists!')
+            click.echo("User with this email already exists!")
             return
 
         # Создаем суперпользователя
-        superuser_data = {
-            "email": email,
-            "password": password,
-            "is_superuser": True
-        }
+        superuser_data = {"email": email, "password": password, "is_superuser": True}
         instance = User(**superuser_data)
         session.add(instance)
         try:
@@ -76,7 +73,7 @@ async def create_superuser(email, password):
             print(f"Ошибка при создании объекта: {e}")
             return None
 
-        click.echo(f'Superuser {email} created successfully!')
+        click.echo(f"Superuser {email} created successfully!")
 
 
 app.include_router(users.router, prefix="/api/v1/users")
@@ -88,8 +85,8 @@ app.include_router(
 )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     if len(sys.argv) > 1:
         create_superuser()
     else:
-        uvicorn.run(app, host='0.0.0.0', port=8080)
+        uvicorn.run(app, host="0.0.0.0", port=8080)

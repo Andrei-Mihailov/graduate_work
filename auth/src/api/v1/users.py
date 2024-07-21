@@ -1,7 +1,7 @@
 from typing import Annotated
 from fastapi import APIRouter, Depends, status, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
-
+import sentry_sdk
 
 from api.v1.schemas.auth import (
     AuthenticationSchema,
@@ -34,26 +34,33 @@ async def login(
     user_service: UserService = Depends(get_user_service),
     auth_service: AuthService = Depends(get_auth_service),
 ) -> None:
-    user_agent = request.headers.get("user-agent")
-    tokens_resp, user = await user_service.login(
-        user_params.email, user_params.password
-    )
-    user_agent_data = AuthenticationData(user_agent=user_agent, user_id=user.id)
-    await auth_service.new_auth(user_agent_data)
-    user_schema = UserSchema(
-        uuid=str(user.id),
-        email=user.email,
-        first_name=user.first_name,
-        last_name=user.last_name,
-        is_superuser=user.is_superuser,
-        is_staff=user.is_staff,
-        active=user.active,
-        role=user.role
-    )
-    response = JSONResponse(content=user_schema.model_dump())
-    response.set_cookie("access_token", tokens_resp.access_token)
-    response.set_cookie("refresh_token", tokens_resp.refresh_token)
-    return response
+    try:
+        user_agent = request.headers.get("user-agent")
+        tokens_resp, user = await user_service.login(
+            user_params.email, user_params.password
+        )
+        user_agent_data = AuthenticationData(user_agent=user_agent, user_id=user.id)
+        await auth_service.new_auth(user_agent_data)
+        user_schema = UserSchema(
+            uuid=str(user.id),
+            email=user.email,
+            first_name=user.first_name,
+            last_name=user.last_name,
+            is_superuser=user.is_superuser,
+            is_staff=user.is_staff,
+            active=user.active,
+            role=user.role,
+        )
+        response = JSONResponse(content=user_schema.model_dump())
+        response.set_cookie("access_token", tokens_resp.access_token)
+        response.set_cookie("refresh_token", tokens_resp.refresh_token)
+        return response
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Произошла ошибка при авторизации",
+        )
 
 
 # /api/v1/users/user_registration
@@ -70,22 +77,29 @@ async def user_registration(
     user_params: Annotated[UserParams, Depends()],
     user_service: UserService = Depends(get_user_service),
 ) -> UserSchema:
-    user = await user_service.create_user(user_params)
-    if user is not None:
-        return UserSchema(
-            uuid=str(user.id),
-            email=user.email,
-            first_name=user.first_name,
-            last_name=user.last_name,
-            is_superuser=user.is_superuser,
-            is_staff=user.is_staff,
-            active=user.active,
-            role=user.role
-        )
+    try:
+        user = await user_service.create_user(user_params)
+        if user is not None:
+            return UserSchema(
+                uuid=str(user.id),
+                email=user.email,
+                first_name=user.first_name,
+                last_name=user.last_name,
+                is_superuser=user.is_superuser,
+                is_staff=user.is_staff,
+                active=user.active,
+                role=user.role,
+            )
 
-    raise HTTPException(
-        status_code=status.HTTP_400_BAD_REQUEST, detail="This email already exists"
-    )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="This email already exists"
+        )
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Произошла ошибка при регистрации пользователя",
+        )
 
 
 # /api/v1/users/change_user_info
@@ -104,18 +118,27 @@ async def change_user_info(
     user_params: Annotated[UserEditParams, Depends()],
     user_service: UserService = Depends(get_user_service),
 ) -> UserSchema:
-    tokens = get_tokens_from_cookie(request)
-    change_user = await user_service.change_user_info(tokens.access_token, user_params)
-    return UserSchema(
-        uuid=str(change_user.id),
-        email=change_user.email,
-        first_name=change_user.first_name,
-        last_name=change_user.last_name,
-        is_superuser=change_user.is_superuser,
-        is_staff=change_user.is_staff,
-        active=change_user.active,
-        role=change_user.role
-    )
+    try:
+        tokens = get_tokens_from_cookie(request)
+        change_user = await user_service.change_user_info(
+            tokens.access_token, user_params
+        )
+        return UserSchema(
+            uuid=str(change_user.id),
+            email=change_user.email,
+            first_name=change_user.first_name,
+            last_name=change_user.last_name,
+            is_superuser=change_user.is_superuser,
+            is_staff=change_user.is_staff,
+            active=change_user.active,
+            role=change_user.role,
+        )
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Произошла ошибка при изменении данных пользователя",
+        )
 
 
 # /api/v1/users/logout
@@ -131,10 +154,17 @@ async def change_user_info(
 async def logout(
     request: Request, user_service: UserService = Depends(get_user_service)
 ) -> bool:
-    tokens = get_tokens_from_cookie(request)
-    return await user_service.logout(
-        access_token=tokens.access_token, refresh_token=tokens.refresh_token
-    )
+    try:
+        tokens = get_tokens_from_cookie(request)
+        return await user_service.logout(
+            access_token=tokens.access_token, refresh_token=tokens.refresh_token
+        )
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Произошла ошибка при выходе пользователя",
+        )
 
 
 # /api/v1/users/refresh_token
@@ -151,14 +181,21 @@ async def logout(
 async def refresh_token(
     request: Request, user_service: UserService = Depends(get_user_service)
 ) -> TokenSchema:
-    tokens = get_tokens_from_cookie(request)
-    new_tokens = await user_service.refresh_access_token(
-        tokens.access_token, tokens.refresh_token
-    )
-    response = Response()
-    response.set_cookie("access_token", new_tokens.access_token)
-    response.set_cookie("refresh_token", new_tokens.refresh_token)
-    return response
+    try:
+        tokens = get_tokens_from_cookie(request)
+        new_tokens = await user_service.refresh_access_token(
+            tokens.access_token, tokens.refresh_token
+        )
+        response = Response()
+        response.set_cookie("access_token", new_tokens.access_token)
+        response.set_cookie("refresh_token", new_tokens.refresh_token)
+        return response
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Произошла ошибка при обновлении токена",
+        )
 
 
 # /api/v1/users/login_history
@@ -177,21 +214,30 @@ async def get_login_history(
     auth_service: Annotated[AuthService, Depends(get_auth_service)],
     pagination_params: Annotated[PaginationParams, Depends()],
 ) -> list[AuthenticationSchema]:
-    tokens = get_tokens_from_cookie(request)
-    auth_data = await auth_service.login_history(
-        tokens.access_token, pagination_params.page_size, pagination_params.page_number
-    )
-
-    list_auth_scheme = []
-    for item in auth_data:
-        auth_scheme = AuthenticationSchema(
-            uuid=item.id,
-            user_id=item.user_id,
-            user_agent=item.user_agent,
-            date_auth=item.date_auth,
+    try:
+        tokens = get_tokens_from_cookie(request)
+        auth_data = await auth_service.login_history(
+            tokens.access_token,
+            pagination_params.page_size,
+            pagination_params.page_number,
         )
-        list_auth_scheme.append(auth_scheme)
-    return list_auth_scheme
+
+        list_auth_scheme = []
+        for item in auth_data:
+            auth_scheme = AuthenticationSchema(
+                uuid=item.id,
+                user_id=item.user_id,
+                user_agent=item.user_agent,
+                date_auth=item.date_auth,
+            )
+            list_auth_scheme.append(auth_scheme)
+        return list_auth_scheme
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Произошла ошибка при получении истории авторизаций",
+        )
 
 
 # /api/v1/users/check_permission
@@ -210,7 +256,14 @@ async def check_permission(
     permission_params: Annotated[PermissionsParams, Depends()],
     user_service: UserService = Depends(get_user_service),
 ) -> bool:
-    tokens = get_tokens_from_cookie(request)
-    return await user_service.check_permissions(
-        tokens.access_token, permission_params.name
-    )
+    try:
+        tokens = get_tokens_from_cookie(request)
+        return await user_service.check_permissions(
+            tokens.access_token, permission_params.name
+        )
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Произошла ошибка при проверке разрешений пользователя",
+        )

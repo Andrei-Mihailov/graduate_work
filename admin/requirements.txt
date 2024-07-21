@@ -6,3 +6,4 @@ python-dotenv==0.20.0
 sqlparse==0.5.0
 gunicorn==22.0.0
 django-quill-editor==0.1.40
+sentry-sdk==2.10.0

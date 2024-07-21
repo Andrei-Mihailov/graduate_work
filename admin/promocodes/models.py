@@ -4,10 +4,9 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 
 class PromoCode(models.Model):
     code = models.CharField(max_length=255, unique=True)
-    discount = models.FloatField(blank=True,
-                                 null=True,
-                                 validators=[MinValueValidator(0),
-                                             MaxValueValidator(100)])
+    discount = models.FloatField(
+        blank=True, null=True, validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )
     is_active = models.BooleanField(default=True)
     creation_date = models.DateField(blank=True, null=True)
 
@@ -32,12 +31,9 @@ class Tariff(models.Model):
 
 
 class Purchase(models.Model):
-    user = models.ForeignKey("users.User",
-                             on_delete=models.DO_NOTHING)
-    tariff = models.ForeignKey(Tariff,
-                               on_delete=models.DO_NOTHING)
-    promo_code = models.ForeignKey(PromoCode,
-                                   on_delete=models.DO_NOTHING)
+    user = models.ForeignKey("users.User", on_delete=models.DO_NOTHING)
+    tariff = models.ForeignKey(Tariff, on_delete=models.DO_NOTHING)
+    promo_code = models.ForeignKey(PromoCode, on_delete=models.DO_NOTHING)
     total_price = models.FloatField()
     purchase_date = models.DateField(auto_now_add=True)
 

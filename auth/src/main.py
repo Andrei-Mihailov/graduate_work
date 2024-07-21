@@ -15,6 +15,7 @@ from db import postgres_db
 from db import redis_db
 from core.config import settings
 from api.v1.service import check_jwt
+import sentry_sdk
 
 
 @asynccontextmanager
@@ -31,6 +32,12 @@ app = FastAPI(
     docs_url="/api/openapi",
     openapi_url="/api/openapi.json",
     default_response_class=ORJSONResponse,
+)
+
+sentry_sdk.init(
+    dsn="https://7e322a912461958b85dcdf23716aeff5@o4507457845592064.ingest.de.sentry.io/4507457848016976",
+    traces_sample_rate=1.0,
+    profiles_sample_rate=1.0,
 )
 
 
@@ -105,7 +112,7 @@ async def create_superuser(email, password):
             "email": email,
             "password": password,
             "is_staff": True,
-            "is_superuser": True
+            "is_superuser": True,
         }
         instance = User(**superuser_data)
         session.add(instance)

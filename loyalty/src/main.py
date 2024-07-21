@@ -1,14 +1,29 @@
-from fastapi import FastAPI, Depends, HTTPException
+import sentry_sdk
+import logging
+from fastapi import FastAPI, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
-import random
-import string
 from datetime import datetime
-from pydantic import BaseModel, validator
-
+from pydantic import BaseModel
 from models import Base, Promocode, PromoUsage
 from database import engine, get_db
 from config import pg_config_data
 from sqlalchemy import create_engine
+from sentry_sdk.integrations.logging import LoggingIntegration
+from sentry_sdk.integrations.asgi import SentryAsgiMiddleware
+
+sentry_sdk.init(
+    dsn="https://7e322a912461958b85dcdf23716aeff5@o4507457845592064.ingest.de.sentry.io/4507457848016976",
+    traces_sample_rate=1.0,
+    profiles_sample_rate=1.0,
+)
+
+sentry_logging = LoggingIntegration(level=logging.INFO, event_level=logging.ERROR)
+sentry_sdk.init(
+    dsn="https://7e322a912461958b85dcdf23716aeff5@o4507457845592064.ingest.de.sentry.io/4507457848016976",
+    integrations=[sentry_logging],
+    traces_sample_rate=1.0,
+    profiles_sample_rate=1.0,
+)
 
 app = FastAPI()
 
@@ -19,7 +34,6 @@ DATABASE_URL = (
 
 engine = create_engine(DATABASE_URL)
 
-# Создаем таблицы в базе данных
 Base.metadata.create_all(bind=engine)
 
 
@@ -67,3 +81,16 @@ def apply_promocode(apply: ApplyPromocode, db: Session = Depends(get_db)):
 @app.get("/")
 def read_root():
     return {"message": "Hello, FastAPI is running!"}
+
+
+@app.middleware("http")
+async def sentry_exception_middleware(request: Request, call_next):
+    try:
+        response = await call_next(request)
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        raise e
+    return response
+
+
+app.add_middleware(SentryAsgiMiddleware)

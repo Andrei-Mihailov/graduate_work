@@ -1,13 +1,14 @@
-import backoff
+import http
+import uuid
 import json
-
 from abc import ABC
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.exc import DBAPIError
 from fastapi.encoders import jsonable_encoder
 from typing import Union
-
+import backoff
+import sentry_sdk
 
 from redis.exceptions import ConnectionError as conn_err_redis
 from asyncpg.exceptions import PostgresConnectionError as conn_err_pg
@@ -39,7 +40,7 @@ class BaseService(AbstractBaseService):
         try:
             await self.storage.commit()
         except Exception as e:
-            print(f"Ошибка при создании объекта: {e}")
+            sentry_sdk.capture_exception(e)
             return None
         await self.storage.refresh(instance)
         return instance
@@ -64,32 +65,45 @@ class BaseService(AbstractBaseService):
             await self.storage.commit()
             await self.storage.refresh(instance)
             return instance
-        except DBAPIError:
+        except DBAPIError as e:
+            sentry_sdk.capture_exception(e)
             return None
         except Exception as e:
-            print(f"Ошибка при обновлении объекта: {e}")
+            sentry_sdk.capture_exception(e)
             return None
 
     @backoff.on_exception(backoff.expo, conn_err_pg, max_tries=5)
     async def get_user_by_email(self, email):
         stmt = select(User).filter(User.email == email).options(selectinload(User.role))
-        result = await self.storage.execute(stmt)
-        user = result.scalars().first()
-        return user
+        try:
+            result = await self.storage.execute(stmt)
+            user = result.scalars().first()
+            return user
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            return None
 
     @backoff.on_exception(backoff.expo, conn_err_pg, max_tries=5)
     async def get_instance_by_id(self, id: str):
         stmt = select(self.model).filter(self.model.id == id)
-        result = await self.storage.execute(stmt)
-        instance = result.scalars().first()
-        return instance
+        try:
+            result = await self.storage.execute(stmt)
+            instance = result.scalars().first()
+            return instance
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            return None
 
     @backoff.on_exception(backoff.expo, conn_err_pg, max_tries=5)
     async def get_instance_by_name(self, name: str):
         stmt = select(self.model).filter(self.model.name == name)
-        result = await self.storage.execute(stmt)
-        instance = result.scalars().first()
-        return instance
+        try:
+            result = await self.storage.execute(stmt)
+            instance = result.scalars().first()
+            return instance
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            return None
 
     @backoff.on_exception(backoff.expo, conn_err_pg, max_tries=5)
     async def del_instance_by_id(self, id: str):
@@ -101,15 +115,23 @@ class BaseService(AbstractBaseService):
                 return True
             else:
                 return False
-        except DBAPIError:
-            raise DBAPIError
+        except DBAPIError as e:
+            sentry_sdk.capture_exception(e)
+            raise e
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            return False
 
     @backoff.on_exception(backoff.expo, conn_err_pg, max_tries=5)
     async def get_all_instance(self):
         stmt = select(Roles).options(selectinload(Roles.permissions))
-        result = await self.storage.execute(stmt)
-        instance = result.fetchall()
-        return instance
+        try:
+            result = await self.storage.execute(stmt)
+            instance = result.fetchall()
+            return instance
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            return []
 
     @backoff.on_exception(backoff.expo, conn_err_pg, max_tries=5)
     async def get_login_history(self, user_uuid: str, limit: int = 10, offset: int = 0):
@@ -123,79 +145,103 @@ class BaseService(AbstractBaseService):
             .offset(offset)
             .limit(limit)
         )
-        result = await self.storage.execute(stmt)
-        instance = result.scalars().all()
-        return instance
+        try:
+            result = await self.storage.execute(stmt)
+            instance = result.scalars().all()
+            return instance
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            return []
 
     @backoff.on_exception(backoff.expo, conn_err_pg, max_tries=5)
     async def permission_to_role(self, permissions_id: str, role_id: str):
-        role = await self.storage.get(Roles, role_id)
-        permissions = await self.storage.get(Permissions, permissions_id)
-        if role is not None and permissions is not None:
-            permissions.role = role
-            self.storage.add(permissions)
-            await self.storage.commit()
-            await self.storage.refresh(permissions)
-            await self.storage.refresh(role)
-            return role
-        else:
+        try:
+            role = await self.storage.get(Roles, role_id)
+            permissions = await self.storage.get(Permissions, permissions_id)
+            if role is not None and permissions is not None:
+                permissions.role = role
+                self.storage.add(permissions)
+                await self.storage.commit()
+                await self.storage.refresh(permissions)
+                await self.storage.refresh(role)
+                return role
+            else:
+                return None
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
             return None
 
     @backoff.on_exception(backoff.expo, conn_err_pg, max_tries=5)
     async def permission_from_role(self, permissions_id: str, role_id: str):
-        role = await self.storage.get(Roles, role_id)
-        permissions = await self.storage.get(Permissions, permissions_id)
-        if role is not None and permissions is not None:
-            if permissions.role_id == role.id:
-                permissions.role = None
-                await self.storage.commit()
-                return True
+        try:
+            role = await self.storage.get(Roles, role_id)
+            permissions = await self.storage.get(Permissions, permissions_id)
+            if role is not None and permissions is not None:
+                if permissions.role_id == role.id:
+                    permissions.role = None
+                    await self.storage.commit()
+                    return True
+                else:
+                    return False
             else:
                 return False
-        else:
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
             return False
 
     @backoff.on_exception(backoff.expo, conn_err_pg, max_tries=5)
     async def set_user_role(self, user_id, role_id):
-        user: User = await self.storage.get(User, user_id)
-        role = await self.storage.get(Roles, role_id)
-        if user is not None and role is not None:
-            user.role = role
-            self.storage.add(user)
-            await self.storage.commit()
-            await self.storage.refresh(user)
-            return user
-        else:
+        try:
+            user: User = await self.storage.get(User, user_id)
+            role = await self.storage.get(Roles, role_id)
+            if user is not None and role is not None:
+                user.role = role
+                self.storage.add(user)
+                await self.storage.commit()
+                await self.storage.refresh(user)
+                return user
+            else:
+                return None
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
             return None
 
     @backoff.on_exception(backoff.expo, conn_err_pg, max_tries=5)
     async def get_user_role(self, user_id):
-        user = await self.storage.get(User, user_id)
-        if user is not None and user.role_id is not None:
-            stmt = (
-                select(Roles)
-                .options(selectinload(Roles.permissions))
-                .where(Roles.id == user.role_id)
-            )
-            result = await self.storage.execute(stmt)
-            role = result.fetchone()
-            if role is not None:
-                return role
+        try:
+            user = await self.storage.get(User, user_id)
+            if user is not None and user.role_id is not None:
+                stmt = (
+                    select(Roles)
+                    .options(selectinload(Roles.permissions))
+                    .where(Roles.id == user.role_id)
+                )
+                result = await self.storage.execute(stmt)
+                role = result.fetchone()
+                if role is not None:
+                    return role
+                else:
+                    return None
             else:
                 return None
-        else:
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
             return None
 
     @backoff.on_exception(backoff.expo, conn_err_pg, max_tries=5)
     async def del_user_role(self, user_id):
-        user: User = await self.storage.get(User, user_id)
-        if user is not None:
-            user.role_id = None
-            self.storage.add(user)
-            await self.storage.commit()
-            await self.storage.refresh(user)
-            return True
-        else:
+        try:
+            user: User = await self.storage.get(User, user_id)
+            if user is not None:
+                user.role_id = None
+                self.storage.add(user)
+                await self.storage.commit()
+                await self.storage.refresh(user)
+                return True
+            else:
+                return False
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
             return False
 
     @backoff.on_exception(backoff.expo, conn_err_redis, max_tries=5)
@@ -205,42 +251,46 @@ class BaseService(AbstractBaseService):
         value: Union[User, Authentication, dict, list[dict]],
         expire: int,
     ):
-        await self.cache.set(
-            key if isinstance(key, str) else json.dumps(key),
-            value.json() if isinstance(value, self.model) else json.dumps(value),
-            expire,
-        )
+        try:
+            await self.cache.set(
+                key if isinstance(key, str) else json.dumps(key),
+                value.json() if isinstance(value, self.model) else json.dumps(value),
+                expire,
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
     @backoff.on_exception(backoff.expo, conn_err_redis, max_tries=5)
     async def _delete_from_cache(self, key: Union[dict, str]):
         try:
             await self.cache.delete(key if isinstance(key, str) else json.dumps(key))
         except Exception as e:
-            print(f"Ошибка при удалении из кэша: {e}")
+            sentry_sdk.capture_exception(e)
 
     @backoff.on_exception(backoff.expo, conn_err_redis, max_tries=5)
     async def _get_from_cache(
         self, key: Union[dict, str]
     ) -> Union[User, Authentication, None]:
-        data = await self.cache.get(json.dumps(key) if isinstance(key, dict) else key)
-        if not data:
-            return None
+        try:
+            data = await self.cache.get(json.dumps(key) if isinstance(key, dict) else key)
+            if not data:
+                return None
 
-        instance_data = json.loads(data)
-        if instance_data:
-            if isinstance(instance_data, list) | isinstance(instance_data, str):
-                return instance_data
-            else:
-                instance_data = self.model(**instance_data)
-        return instance_data
+            instance_data = json.loads(data)
+            if instance_data:
+                if isinstance(instance_data, list) or isinstance(instance_data, str):
+                    return instance_data
+                else:
+                    instance_data = self.model(**instance_data)
+            return instance_data
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            return None
 
     async def add_to_white_list(self, token, token_type):
         payload = decode_jwt(jwt_token=token)
         key = "white_list:" + payload.get("self_uuid")
-        if token_type == "refresh":
-            expire = settings.auth_jwt.refresh_token_expire_minutes
-        else:
-            expire = settings.auth_jwt.access_token_expire_minutes
+        expire = settings.auth_jwt.refresh_token_expire_minutes if token_type == "refresh" else settings.auth_jwt.access_token_expire_minutes
         await self._put_to_cache(key, token, expire)
 
     async def get_from_white_list(self, token):
@@ -256,10 +306,7 @@ class BaseService(AbstractBaseService):
     async def add_to_black_list(self, token, token_type):
         payload = decode_jwt(jwt_token=token)
         key = "black_list:" + payload.get("self_uuid")
-        if token_type == "refresh":
-            expire = settings.auth_jwt.refresh_token_expire_minutes
-        else:
-            expire = settings.auth_jwt.access_token_expire_minutes
+        expire = settings.auth_jwt.refresh_token_expire_minutes if token_type == "refresh" else settings.auth_jwt.access_token_expire_minutes
         await self._put_to_cache(key, token, expire)
 
     async def get_from_black_list(self, token):

@@ -3,14 +3,13 @@ import uuid
 
 from datetime import timedelta, datetime, timezone
 from fastapi import HTTPException, status
+import sentry_sdk  # Импортируем Sentry SDK
 
 from core.config import settings
-
 from models.value_objects import Role_names
 
 ACCESS_TOKEN_TYPE = "access"
 REFRESH_TOKEN_TYPE = "refresh"
-
 
 def create_jwt(token_type: str, token_data: dict, expire_minutes: int) -> str:
     jwt_payload = {"type": token_type}
@@ -23,7 +22,6 @@ def create_jwt(token_type: str, token_data: dict, expire_minutes: int) -> str:
 
     jwt_payload.update(exp=expire_unix, iat=now_unix)
     return encode_jwt(jwt_payload)
-
 
 def create_access_token(user, user_role: Role_names = Role_names.user):
     # в теле токена хранится UUID пользователя, его роли и UUID самого токена
@@ -38,13 +36,11 @@ def create_access_token(user, user_role: Role_names = Role_names.user):
         ACCESS_TOKEN_TYPE, payload, settings.auth_jwt.access_token_expire_minutes
     )
 
-
 def create_refresh_token(user):
     payload = {"sub": str(user.id), "self_uuid": str(uuid.uuid4())}
     return create_jwt(
         REFRESH_TOKEN_TYPE, payload, settings.auth_jwt.refresh_token_expire_minutes
     )
-
 
 def encode_jwt(
     payload: dict,
@@ -52,7 +48,6 @@ def encode_jwt(
     algorithm: str = settings.auth_jwt.algorithm,
 ):
     return jwt.encode(payload, private_key, algorithm)
-
 
 def decode_jwt(
     jwt_token: str,
@@ -62,25 +57,28 @@ def decode_jwt(
     try:
         decoded = jwt.decode(jwt_token, private_key, algorithms=[algorithm])
     except jwt.exceptions.DecodeError:
+        sentry_sdk.capture_exception(Exception("Invalid authentication credentials"))
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication credentials",
         )
     except jwt.exceptions.InvalidAlgorithmError:
+        sentry_sdk.capture_exception(Exception("Invalid token algorithm"))
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token algorithm"
         )
     except jwt.exceptions.InvalidSignatureError:
+        sentry_sdk.capture_exception(Exception("Invalid token signature"))
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token signature"
         )
     except jwt.exceptions.ExpiredSignatureError:
+        sentry_sdk.capture_exception(Exception("Token has expired"))
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token has expired, refresh token",
         )
     return decoded
-
 
 def hash_password(
     password: str,
@@ -88,30 +86,34 @@ def hash_password(
     hash_pass = settings.pwd_context.hash(password)
     return hash_pass
 
-
 def validate_password(hashed_password: bytes, password: str) -> bool:
     try:
         return settings.pwd_context.verify(password, hashed_password)
     except ValueError:
+        sentry_sdk.capture_exception(Exception("Incorrect password"))
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="Incorrect password"
         )
 
-
 def check_date_and_type_token(payload: dict, type_token_need: str) -> bool:
-
-    type_token = payload.get("type")
-    # проверка типа токена
-    if type_token != type_token_need:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid token type"
-        )
-    # проверяем срок действия access токена
-    exp = payload.get("exp")
-    now = datetime.timestamp(datetime.now())
-    if now > exp:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Token has expired, refresh token",
-        )
-    return True
+    try:
+        type_token = payload.get("type")
+        # проверка типа токена
+        if type_token != type_token_need:
+            sentry_sdk.capture_exception(Exception("Invalid token type"))
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid token type"
+            )
+        # проверяем срок действия access токена
+        exp = payload.get("exp")
+        now = datetime.timestamp(datetime.now())
+        if now > exp:
+            sentry_sdk.capture_exception(Exception("Token has expired"))
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Token has expired, refresh token",
+            )
+        return True
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")

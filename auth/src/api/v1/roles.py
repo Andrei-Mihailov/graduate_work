@@ -1,6 +1,7 @@
 from typing import Annotated
 from fastapi import APIRouter, Depends, status, HTTPException, Request
 from sqlalchemy.exc import MissingGreenlet
+import sentry_sdk
 
 from api.v1.schemas.roles import (
     RolesSchema,
@@ -12,7 +13,6 @@ from api.v1.schemas.roles import (
 )
 from services.role import RoleService, get_role_service
 from api.v1.service import allow_this_user
-
 
 router = APIRouter()
 
@@ -33,13 +33,20 @@ async def create(
     role_params: Annotated[RoleParams, Depends()],
     role_service: Annotated[RoleService, Depends(get_role_service)],
 ) -> RolesSchema:
-    role = await role_service.create(role_params)
-    if role is not None:
-        return RolesSchema(uuid=role.id, type=role.type)
+    try:
+        role = await role_service.create(role_params)
+        if role is not None:
+            return RolesSchema(uuid=role.id, type=role.type)
 
-    raise HTTPException(
-        status_code=status.HTTP_400_BAD_REQUEST, detail="This role already exists"
-    )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Такая роль уже существует"
+        )
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Произошла ошибка при создании роли",
+        ) from e
 
 
 # /api/v1/roles/{id_role}
@@ -56,11 +63,18 @@ async def delete(
     id_role: str,
     role_service: Annotated[RoleService, Depends(get_role_service)],
 ) -> None:
-    result = await role_service.delete(id_role)
-    if result:
-        return None
+    try:
+        result = await role_service.delete(id_role)
+        if result:
+            return None
 
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Произошла ошибка при удалении роли",
+        ) from e
 
 
 # /api/v1/roles/change/{id_role}
@@ -80,11 +94,18 @@ async def change(
     role_params: Annotated[RoleEditParams, Depends()],
     role_service: Annotated[RoleService, Depends(get_role_service)],
 ) -> RolesSchema:
-    role = await role_service.update(id_role, role_params)
-    if role is not None:
-        return RolesSchema(uuid=role.id, type=role.type)
+    try:
+        role = await role_service.update(id_role, role_params)
+        if role is not None:
+            return RolesSchema(uuid=role.id, type=role.type)
 
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Произошла ошибка при редактировании роли",
+        ) from e
 
 
 # /api/v1/roles/list
@@ -101,22 +122,31 @@ async def change(
 async def list_roles(
     request: Request, role_service: Annotated[RoleService, Depends(get_role_service)]
 ) -> list[RolesPermissionsSchema]:
-    roles_data = await role_service.elements()
+    try:
+        roles_data = await role_service.elements()
 
-    list_roles_scheme = []
-    if roles_data:
-        for item in roles_data:
-            try:
-                perms = []
-                for subitem in item._data[0].permissions:
-                    perms.append(PermissionsSchema(uuid=subitem.id, name=subitem.name))
-            except MissingGreenlet:
-                perms = None
-            roles_scheme = RolesPermissionsSchema(
-                uuid=item._data[0].id, type=item._data[0].type, permissions=perms
-            )
-            list_roles_scheme.append(roles_scheme)
-    return list_roles_scheme
+        list_roles_scheme = []
+        if roles_data:
+            for item in roles_data:
+                try:
+                    perms = []
+                    for subitem in item._data[0].permissions:
+                        perms.append(
+                            PermissionsSchema(uuid=subitem.id, name=subitem.name)
+                        )
+                except MissingGreenlet:
+                    perms = None
+                roles_scheme = RolesPermissionsSchema(
+                    uuid=item._data[0].id, type=item._data[0].type, permissions=perms
+                )
+                list_roles_scheme.append(roles_scheme)
+        return list_roles_scheme
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Произошла ошибка при получении списка ролей",
+        ) from e
 
 
 # /api/v1/roles/set/{user_id}/{id_role}
@@ -136,11 +166,18 @@ async def add_user_role(
     id_role: str,
     role_service: Annotated[RoleService, Depends(get_role_service)],
 ) -> UserRoleSchema:
-    result = await role_service.assign_role(user_id, id_role)
-    if result is not None:
-        return UserRoleSchema(id_role=id_role, user_id=user_id)
+    try:
+        result = await role_service.assign_role(user_id, id_role)
+        if result is not None:
+            return UserRoleSchema(id_role=id_role, user_id=user_id)
 
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Произошла ошибка при назначении роли пользователю",
+        ) from e
 
 
 # /api/v1/roles/delete/{user_id}
@@ -158,5 +195,12 @@ async def del_user_role(
     request: Request,
     user_id: str,
     role_service: Annotated[RoleService, Depends(get_role_service)],
-) -> UserRoleSchema:
-    return await role_service.deassign_role(user_id)
+) -> bool:
+    try:
+        return await role_service.deassign_role(user_id)
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Произошла ошибка при удалении роли у пользователя",
+        ) from e

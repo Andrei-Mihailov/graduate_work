@@ -1,8 +1,7 @@
 from fastapi import status, HTTPException, Request, Depends
 from pydantic_core import ValidationError
-from api.v1.schemas.auth import (
-    TokenParams,
-)
+import sentry_sdk
+from api.v1.schemas.auth import TokenParams
 from pydantic import BaseModel, Field
 from functools import wraps
 from typing import Union
@@ -26,7 +25,8 @@ def get_tokens_from_cookie(request: Request) -> TokenParams:
             refresh_token=request.cookies.get("refresh_token"),
         )
         return token
-    except (ValidationError, AttributeError):
+    except (ValidationError, AttributeError) as e:
+        sentry_sdk.capture_exception(e)
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Tokens is not found"
         )
@@ -37,13 +37,17 @@ async def check_jwt(request: Request, service: UserService = Depends(get_user_se
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
     )
-    tokens = get_tokens_from_cookie(request)
-    payload = decode_jwt(jwt_token=tokens.access_token)
-    if check_date_and_type_token(payload, "access"):
-        # проверка access токена в блэк листе redis
-        if not await service.get_from_black_list(tokens.access_token):
-            return payload
-    raise credentials_exception
+    try:
+        tokens = get_tokens_from_cookie(request)
+        payload = decode_jwt(jwt_token=tokens.access_token)
+        if check_date_and_type_token(payload, "access"):
+            # проверка access токена в блэк листе redis
+            if not await service.get_from_black_list(tokens.access_token):
+                return payload
+        raise credentials_exception
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        raise credentials_exception from e
 
 
 async def is_admin(payload: dict) -> bool:
@@ -60,10 +64,14 @@ async def is_superuser(payload: dict) -> bool:
 
 async def has_permission(access_token: str) -> bool:
     """Проверка разрешений пользователя на основе токена."""
-    payload = decode_jwt(jwt_token=access_token)
-    if await is_admin(payload):
-        return True
-    return False
+    try:
+        payload = decode_jwt(jwt_token=access_token)
+        if await is_admin(payload):
+            return True
+        return False
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        return False
 
 
 def allow_this_user(function):
@@ -74,32 +82,38 @@ def allow_this_user(function):
             "role_service", kwargs.get("permission_service", None)
         )
         user_id = kwargs.get("user_id", None)
-        tokens = get_tokens_from_cookie(request)
-        payload = decode_jwt(jwt_token=tokens.access_token)
-        check_superuser = await is_superuser(payload)
+        try:
+            tokens = get_tokens_from_cookie(request)
+            payload = decode_jwt(jwt_token=tokens.access_token)
+            check_superuser = await is_superuser(payload)
 
-        if check_superuser:
-            return await function(*args, **kwargs)
+            if check_superuser:
+                return await function(*args, **kwargs)
 
-        has_perm = await has_permission(tokens.access_token)
-        if has_perm:
-            if user_id:
-                user_role = await service.get_user_role(user_id)
+            has_perm = await has_permission(tokens.access_token)
+            if has_perm:
+                if user_id:
+                    user_role = await service.get_user_role(user_id)
 
-                if user_role == Role_names.admin:
-                    raise HTTPException(
-                        status_code=status.HTTP_403_FORBIDDEN,
-                        detail="This operation is forbidden for you",
-                    )
-
+                    if user_role == Role_names.admin:
+                        raise HTTPException(
+                            status_code=status.HTTP_403_FORBIDDEN,
+                            detail="This operation is forbidden for you",
+                        )
+                    else:
+                        return await function(*args, **kwargs)
                 else:
                     return await function(*args, **kwargs)
             else:
-                return await function(*args, **kwargs)
-        else:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="This operation is forbidden for you",
+                )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="This operation is forbidden for you",
-            )
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Произошла ошибка при проверке пользователя",
+            ) from e
 
     return wrapper
