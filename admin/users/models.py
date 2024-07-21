@@ -11,6 +11,9 @@ class Group(models.Model):
         verbose_name="Описание",
         max_length=255)
 
+    def __str__(self):
+        return self.name
+
     class Meta:
         db_table = "groups"
         verbose_name = "Группа"
@@ -23,8 +26,10 @@ class User(AbstractBaseUser):
         unique=True)
     group = models.ManyToManyField(
         Group,
-        default=None,
-        null=True)
+        verbose_name="Группы",
+        blank=True)
+    is_deleted = models.BooleanField(
+        default=False)
 
     def __str__(self):
         return self.username

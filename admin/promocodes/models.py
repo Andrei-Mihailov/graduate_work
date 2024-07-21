@@ -16,11 +16,11 @@ class PromoCode(models.Model):
         default=0)
     discount_type = models.CharField(
         verbose_name='Тип скидки',
-        max_length=10,
+        max_length=15,
         choices=DiscountType.choices,
         default=DiscountType.FIXED)
     num_uses = models.PositiveIntegerField(
-        verbose_name='Количество использований',
+        verbose_name='Доступное количество использований',
         default=1)
     is_active = models.BooleanField(
         verbose_name="Действителен",
@@ -59,6 +59,9 @@ class Tariff(models.Model):
     is_deleted = models.BooleanField(
         default=False)
 
+    def __str__(self):
+        return self.name
+
     class Meta:
         db_table = "tariffs"
         verbose_name = "Тариф"
@@ -83,6 +86,9 @@ class Purchase(models.Model):
         verbose_name="Дата покупки",
         auto_now_add=True)
 
+    def __str__(self):
+        return f"{self.tariff} - {self.purchase_date}"
+
     class Meta:
         db_table = "purchases"
         verbose_name = "Покупка"
@@ -92,13 +98,19 @@ class Purchase(models.Model):
 class AvailableForUsers(models.Model):
     user = models.ManyToManyField(
         "users.User",
-        verbose_name="Пользователь")
+        verbose_name="Пользователь",
+        blank=True)
     group = models.ManyToManyField(
         "users.Group",
-        verbose_name="Группа пользователей")
+        verbose_name="Группа пользователей",
+        blank=True)
     promo_code = models.ForeignKey(
         PromoCode,
+        verbose_name="Промокод",
         on_delete=models.DO_NOTHING)
+
+    def __str__(self):
+        return self.promo_code.code
 
     class Meta:
         db_table = "availables"

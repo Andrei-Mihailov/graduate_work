@@ -1,5 +1,6 @@
 import random
 import string
+import datetime
 
 from django.contrib import admin, messages
 from django.contrib.auth.models import User, Group
@@ -8,6 +9,33 @@ from . import models
 
 admin.site.unregister(User)
 admin.site.unregister(Group)
+
+
+# for i in range(100):
+#     if i > 25:
+#         exp_date = datetime.datetime.now() + datetime.timedelta(days=i)
+#     else:
+#         exp_date = None
+#     type_d = random.choices(models.PromoCode.DiscountType.values)[0]
+#     models.PromoCode.objects.create(code="".join(random.choices(string.ascii_uppercase + string.digits, k=10)),
+#                                     discount=random.randint(10, 50),
+#                                     discount_type=type_d,
+#                                     num_uses=random.randint(1, 50),
+#                                     expiration_date=exp_date,
+#                                     is_deleted=random.choice([True, False]))
+# from users.models import User
+# for i in range(1000):
+#     user = User.objects.get(id=random.randint(1, User.objects.count()))
+#     tariff = models.Tariff.objects.get(id=random.randint(1, models.Tariff.objects.count()))
+#     promo_code = models.PromoCode.objects.get(id=random.randint(1, models.PromoCode.objects.count()))
+#     total_price = random.randint(200, 1000)
+#     purchase_date = datetime.datetime.now() - datetime.timedelta(days=random.randint(1, 100))
+
+#     models.Purchase.objects.create(user=user,
+#                                    tariff=tariff,
+#                                    promo_code=promo_code,
+#                                    total_price=total_price,
+#                                    purchase_date=purchase_date)
 
 
 class PurchaseInline(admin.TabularInline):
@@ -28,18 +56,37 @@ class PurchaseInline(admin.TabularInline):
         return False
 
 
+class AvailablesInline(admin.TabularInline):
+    model = models.AvailableForUsers
+
+    fields = [
+        'promo_code',
+        ('user', 'group')
+    ]
+    list_display = (
+        'promo_code',
+        'get_users',
+        'get_groups'
+    )
+    extra = 1
+    show_change_link = True
+    verbose_name = "Доступ"
+    verbose_name_plural = "Доступы"
+
+
 class PromoCode(admin.ModelAdmin):
     fields = [
         'code',
         ('discount', 'discount_type'),
         ('num_uses', 'expiration_date'),
-        ('is_active', 'creation_date'),
+        ('is_active', 'creation_date')
     ]
     list_display = (
         'code',
         'discount',
         'discount_type',
         'num_uses',
+        'get_purchase',
         'expiration_date',
         'is_active'
     )
@@ -49,7 +96,7 @@ class PromoCode(admin.ModelAdmin):
         'num_uses',
         'discount_type'
     )
-    ordering = (
+    list_filter = (
         'discount_type',
         'num_uses',
         'expiration_date',
@@ -59,12 +106,16 @@ class PromoCode(admin.ModelAdmin):
 
     )
     exclude = ('is_deleted',)
-    inlines = [PurchaseInline]
+    inlines = [PurchaseInline, AvailablesInline]
 
     def formfield_for_dbfield(self, db_field, request, **kwargs):
         if db_field.name == 'code':
             kwargs['initial'] = "".join(random.choices(string.ascii_uppercase + string.digits, k=10))
         return super().formfield_for_dbfield(db_field, request, **kwargs)
+
+    def get_purchase(self, obj):
+        return models.Purchase.objects.filter(promo_code=obj).count()
+    get_purchase.short_description = 'Использован, раз'
 
     @admin.action(description='Удалить')
     def delete_selected(self, request, queryset):
@@ -78,7 +129,19 @@ class PromoCode(admin.ModelAdmin):
         except Exception:
             self.message_user(request, "Что-то пошло не так, попробуйте снова.", messages.ERROR)
 
-    actions = [delete_selected]
+    @admin.action(description='Деактивировать')
+    def deactivate_selected(self, request, queryset):
+        try:
+            for obj in queryset:
+                obj.is_active = False
+                obj.save()
+            self.message_user(request,
+                              f"{len(queryset)} промокод(ов) деактивировано",
+                              messages.SUCCESS)
+        except Exception:
+            self.message_user(request, "Что-то пошло не так, попробуйте снова.", messages.ERROR)
+
+    actions = [delete_selected, deactivate_selected]
 
 
 class Tariff(admin.ModelAdmin):
@@ -129,7 +192,7 @@ class Purchase(admin.ModelAdmin):
         'tariff',
         'promo_code'
     ]
-    ordering = ('purchase_date',)
+    list_filter = ('purchase_date',)
     readonly_fields = (
         'user',
         'tariff',
@@ -137,12 +200,35 @@ class Purchase(admin.ModelAdmin):
         'total_price',
         'purchase_date'
     )
-    exclude = ('image_url',)
 
     def has_add_permission(self, request, obj=None):
         return False
 
 
+class AvailableForUsers(admin.ModelAdmin):
+    fields = [
+        'promo_code',
+        ('user', 'group')
+    ]
+    list_display = (
+        'promo_code',
+        'get_users',
+        'get_groups'
+    )
+    search_fields = [
+        'promo_code'
+    ]
+
+    def get_users(self, obj):
+        return ", ".join([str(user) for user in obj.user.all()])
+    get_users.short_description = 'Пользователи'
+
+    def get_groups(self, obj):
+        return ", ".join([str(group) for group in obj.group.all()])
+    get_groups.short_description = 'Группы пользователей'
+
+
 admin.site.register(models.PromoCode, PromoCode)
 admin.site.register(models.Tariff, Tariff)
 admin.site.register(models.Purchase, Purchase)
+admin.site.register(models.AvailableForUsers, AvailableForUsers)
