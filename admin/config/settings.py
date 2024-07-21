@@ -2,6 +2,7 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 from split_settings.tools import include
+import sentry_sdk
 
 
 load_dotenv()
@@ -69,3 +70,15 @@ STATIC_URL = "/static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "static")
 
 AUTH_API_LOGIN_URL = os.environ.get("AUTH_API_LOGIN_URL")
+
+
+sentry_sdk.init(
+    dsn="https://cf3dc30539417cdefc65204e4ca2fe4b@o4507457845592064.ingest.de.sentry.io/4507640034820176",
+    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for performance monitoring.
+    traces_sample_rate=1.0,
+    # Set profiles_sample_rate to 1.0 to profile 100%
+    # of sampled transactions.
+    # We recommend adjusting this value in production.
+    profiles_sample_rate=1.0,
+)
