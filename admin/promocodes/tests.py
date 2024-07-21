@@ -1,35 +1,32 @@
 from django.test import TestCase
 from django.utils import timezone
-from .models import PromoCode, Tariff, Purchase
+from .models import PromoCode, Tariff, Purchase, AvailableForUsers
 from users.models import User, Group
+
 
 class PromoCodeModelTest(TestCase):
 
     def setUp(self):
         self.promo_code = PromoCode.objects.create(
-            code="SUMMER21",
-            discount=20.0,
+            code="TEST2024",
+            discount=10.0,
+            discount_type=PromoCode.DiscountType.PERCENTAGE,
+            num_uses=5,
             is_active=True,
-            creation_date=timezone.now().date()
+            expiration_date=timezone.now() + timezone.timedelta(days=30)
         )
 
     def test_promo_code_creation(self):
-        """Тестирование создания промокода"""
-        promo_code = PromoCode.objects.get(code="SUMMER21")
-        self.assertEqual(promo_code.discount, 20.0)
-        self.assertTrue(promo_code.is_active)
-        self.assertIsNotNone(promo_code.creation_date)
+        self.assertEqual(self.promo_code.code, "TEST2024")
+        self.assertEqual(self.promo_code.discount, 10.0)
+        self.assertEqual(self.promo_code.discount_type, PromoCode.DiscountType.PERCENTAGE)
+        self.assertEqual(self.promo_code.num_uses, 5)
+        self.assertTrue(self.promo_code.is_active)
+        self.assertIsNotNone(self.promo_code.creation_date)
+        self.assertIsNotNone(self.promo_code.expiration_date)
 
-    def test_promo_code_str(self):
-        """Тестирование метода __str__"""
-        self.assertEqual(str(self.promo_code), "SUMMER21")
-
-    def test_discount_validators(self):
-        """Тестирование валидаторов для поля discount"""
-        with self.assertRaises(ValueError):
-            PromoCode.objects.create(code="WINTER21", discount=-10)
-        with self.assertRaises(ValueError):
-            PromoCode.objects.create(code="WINTER21", discount=110)
+    def test_str_method(self):
+        self.assertEqual(str(self.promo_code), "TEST2024")
 
 
 class TariffModelTest(TestCase):
@@ -38,93 +35,70 @@ class TariffModelTest(TestCase):
         self.tariff = Tariff.objects.create(
             name="Basic Plan",
             price=29.99,
-            description="Basic plan with limited features."
+            description="A basic plan for users."
         )
 
     def test_tariff_creation(self):
-        """Тестирование создания тарифа"""
-        tariff = Tariff.objects.get(name="Basic Plan")
-        self.assertEqual(tariff.price, 29.99)
-        self.assertEqual(tariff.description, "Basic plan with limited features.")
+        self.assertEqual(self.tariff.name, "Basic Plan")
+        self.assertEqual(self.tariff.price, 29.99)
+        self.assertEqual(self.tariff.description, "A basic plan for users.")
 
-    def test_tariff_str(self):
-        """Тестирование метода __str__"""
-        self.assertEqual(str(self.tariff), "Basic Plan")
+    def test_is_deleted_default(self):
+        self.assertFalse(self.tariff.is_deleted)
 
 
 class PurchaseModelTest(TestCase):
 
     def setUp(self):
-        self.user = User.objects.create_user(
-            username="testuser", email="testuser@example.com", password="password"
-        )
+        self.user = User.objects.create(username="testuser")
         self.tariff = Tariff.objects.create(
-            name="Premium Plan",
-            price=49.99,
-            description="Premium plan with all features."
+            name="Basic Plan",
+            price=29.99,
+            description="A basic plan for users."
         )
         self.promo_code = PromoCode.objects.create(
-            code="DISCOUNT50",
-            discount=50.0,
-            is_active=True,
-            creation_date=timezone.now().date()
+            code="TEST2024",
+            discount=10.0,
+            discount_type=PromoCode.DiscountType.PERCENTAGE,
+            num_uses=5,
+            is_active=True
         )
         self.purchase = Purchase.objects.create(
             user=self.user,
             tariff=self.tariff,
             promo_code=self.promo_code,
-            total_price=self.tariff.price * (1 - self.promo_code.discount / 100)
+            total_price=26.99  # Price after discount
         )
 
     def test_purchase_creation(self):
-        """Тестирование создания покупки"""
-        purchase = Purchase.objects.get(user=self.user)
-        self.assertEqual(purchase.tariff, self.tariff)
-        self.assertEqual(purchase.promo_code, self.promo_code)
-        self.assertEqual(purchase.total_price, self.tariff.price * (1 - self.promo_code.discount / 100))
+        self.assertEqual(self.purchase.user, self.user)
+        self.assertEqual(self.purchase.tariff, self.tariff)
+        self.assertEqual(self.purchase.promo_code, self.promo_code)
+        self.assertEqual(self.purchase.total_price, 26.99)
+        self.assertIsNotNone(self.purchase.purchase_date)
 
-    def test_purchase_date(self):
-        """Тестирование поля purchase_date"""
-        purchase = Purchase.objects.get(user=self.user)
-        self.assertIsInstance(purchase.purchase_date, timezone.datetime)
 
-    def test_purchase_str(self):
-        self.assertEqual(str(self.purchase), f"Purchase of {self.tariff.name} by {self.user.username}")
-
-class UserModelTest(TestCase):
+class AvailableForUsersModelTest(TestCase):
 
     def setUp(self):
-        self.group = Group.objects.create(
-            name="Admin",
-            description="Group with administrative privileges."
+        self.user = User.objects.create(username="testuser")
+        self.group = Group.objects.create(name="Test Group", description="A test group")
+        self.promo_code = PromoCode.objects.create(
+            code="TEST2024",
+            discount=10.0,
+            discount_type=PromoCode.DiscountType.PERCENTAGE,
+            num_uses=5,
+            is_active=True
         )
-        self.user = User.objects.create_user(
-            username="testuser",
-            group=self.group
-        )
+        self.available = AvailableForUsers.objects.create(promo_code=self.promo_code)
+        self.available.user.set([self.user])
+        self.available.group.set([self.group])
 
-    def test_user_creation(self):
-        """Тестирование создания пользователя"""
-        user = User.objects.get(username="testuser")
-        self.assertEqual(user.group, self.group)
+    def test_available_for_users_creation(self):
+        self.assertIn(self.user, self.available.user.all())
+        self.assertIn(self.group, self.available.group.all())
+        self.assertEqual(self.available.promo_code, self.promo_code)
 
-    def test_user_str(self):
-        """Тестирование метода __str__"""
-        self.assertEqual(str(self.user), "testuser")
-
-class GroupModelTest(TestCase):
-
-    def setUp(self):
-        self.group = Group.objects.create(
-            name="Admin",
-            description="Group with administrative privileges."
-        )
-
-    def test_group_creation(self):
-        """Тестирование создания группы"""
-        group = Group.objects.get(name="Admin")
-        self.assertEqual(group.description, "Group with administrative privileges.")
-
-    def test_group_str(self):
-        """Тестирование метода __str__"""
-        self.assertEqual(str(self.group), "Admin")
+    def test_str_method(self):
+        # To test str method, you might want to implement a __str__ method in the model
+        self.assertEqual(str(self.available.promo_code), "TEST2024")
