@@ -43,11 +43,12 @@ class CustomBackend(BaseBackend):
         try:
             user, created = User.objects.get_or_create(email=data.get("email"))
             if created:
-                user.first_name = data.get("first_name", "anonym")
-                user.last_name = data.get("last_name", "anonym")
-                user.is_staff = data.get("is_staff", None)
-                user.is_superuser = data.get("is_superuser", False)
-                user.is_active = data.get("active", True)
+                user.username = data.get('email')
+                user.first_name = data.get('first_name', 'anonym')
+                user.last_name = data.get('last_name', 'anonym')
+                user.is_staff = data.get('is_staff', None)
+                user.is_superuser = data.get('is_superuser', False)
+                user.is_active = data.get('active', True)
                 user.save()
         except Exception as e:
             sentry_sdk.capture_exception(e)

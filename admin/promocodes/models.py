@@ -1,14 +1,42 @@
 from django.db import models
-from django.core.validators import MinValueValidator, MaxValueValidator
 
 
 class PromoCode(models.Model):
-    code = models.CharField(max_length=255, unique=True)
+    class DiscountType(models.TextChoices):
+        FIXED = "fixed"
+        PERCENTAGE = "percentage"
+        TRIAL = "trial"
+
+    code = models.CharField(
+        verbose_name="Промокод",
+        max_length=255,
+        unique=True)
     discount = models.FloatField(
-        blank=True, null=True, validators=[MinValueValidator(0), MaxValueValidator(100)]
+        verbose_name="Размер скидки",
+        default=0)
+    discount_type = models.CharField(
+        verbose_name='Тип скидки',
+        max_length=10,
+        choices=DiscountType.choices,
+        default=DiscountType.FIXED)
+    num_uses = models.PositiveIntegerField(
+        verbose_name='Количество использований',
+        default=1)
+    is_active = models.BooleanField(
+        verbose_name="Действителен",
+        default=True)
+    creation_date = models.DateField(
+        verbose_name="Дата создания",
+        auto_now_add=True
     )
-    is_active = models.BooleanField(default=True)
-    creation_date = models.DateField(blank=True, null=True)
+    expiration_date = models.DateField(
+        verbose_name="Срок действия",
+        default=None,
+        null=True,
+        blank=True
+    )
+    is_deleted = models.BooleanField(
+        default=False)
 
     def __str__(self):
         return self.code
@@ -20,9 +48,16 @@ class PromoCode(models.Model):
 
 
 class Tariff(models.Model):
-    name = models.CharField(max_length=255)
-    price = models.FloatField()
-    description = models.CharField(max_length=255)
+    name = models.CharField(
+        verbose_name="Название",
+        max_length=255)
+    price = models.FloatField(
+        verbose_name="Стоимость")
+    description = models.CharField(
+        verbose_name='Описание',
+        max_length=255)
+    is_deleted = models.BooleanField(
+        default=False)
 
     class Meta:
         db_table = "tariffs"
@@ -31,13 +66,41 @@ class Tariff(models.Model):
 
 
 class Purchase(models.Model):
-    user = models.ForeignKey("users.User", on_delete=models.DO_NOTHING)
-    tariff = models.ForeignKey(Tariff, on_delete=models.DO_NOTHING)
-    promo_code = models.ForeignKey(PromoCode, on_delete=models.DO_NOTHING)
-    total_price = models.FloatField()
-    purchase_date = models.DateField(auto_now_add=True)
+    user = models.ForeignKey(
+        "users.User",
+        verbose_name="Пользователь",
+        on_delete=models.DO_NOTHING)
+    tariff = models.ForeignKey(
+        Tariff,
+        verbose_name="Тариф",
+        on_delete=models.DO_NOTHING)
+    promo_code = models.ForeignKey(
+        PromoCode,
+        on_delete=models.DO_NOTHING)
+    total_price = models.FloatField(
+        verbose_name="Итоговая стоимость")
+    purchase_date = models.DateField(
+        verbose_name="Дата покупки",
+        auto_now_add=True)
 
     class Meta:
         db_table = "purchases"
         verbose_name = "Покупка"
         verbose_name_plural = "Покупки"
+
+
+class AvailableForUsers(models.Model):
+    user = models.ManyToManyField(
+        "users.User",
+        verbose_name="Пользователь")
+    group = models.ManyToManyField(
+        "users.Group",
+        verbose_name="Группа пользователей")
+    promo_code = models.ForeignKey(
+        PromoCode,
+        on_delete=models.DO_NOTHING)
+
+    class Meta:
+        db_table = "availables"
+        verbose_name = "Доступ"
+        verbose_name_plural = "Доступы"
