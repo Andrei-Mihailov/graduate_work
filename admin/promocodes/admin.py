@@ -41,12 +41,7 @@ admin.site.unregister(Group)
 class PurchaseInline(admin.TabularInline):
     model = models.Purchase
 
-    readonly_fields = (
-        'user',
-        'tariff',
-        'total_price',
-        'purchase_date'
-    )
+    readonly_fields = ("user", "tariff", "total_price", "purchase_date")
     extra = 0
     show_change_link = True
     verbose_name = "Покупка"
@@ -59,15 +54,8 @@ class PurchaseInline(admin.TabularInline):
 class AvailablesInline(admin.TabularInline):
     model = models.AvailableForUsers
 
-    fields = [
-        'promo_code',
-        ('user', 'group')
-    ]
-    list_display = (
-        'promo_code',
-        'get_users',
-        'get_groups'
-    )
+    fields = ["promo_code", ("user", "group")]
+    list_display = ("promo_code", "get_users", "get_groups")
     extra = 1
     show_change_link = True
     verbose_name = "Доступ"
@@ -76,156 +64,119 @@ class AvailablesInline(admin.TabularInline):
 
 class PromoCode(admin.ModelAdmin):
     fields = [
-        'code',
-        ('discount', 'discount_type'),
-        ('num_uses', 'expiration_date'),
-        ('is_active', 'creation_date')
+        "code",
+        ("discount", "discount_type"),
+        ("num_uses", "expiration_date"),
+        ("is_active", "creation_date"),
     ]
     list_display = (
-        'code',
-        'discount',
-        'discount_type',
-        'num_uses',
-        'get_purchase',
-        'expiration_date',
-        'is_active'
+        "code",
+        "discount",
+        "discount_type",
+        "num_uses",
+        "get_purchase",
+        "expiration_date",
+        "is_active",
     )
-    search_fields = (
-        'code',
-        'discount',
-        'num_uses',
-        'discount_type'
-    )
-    list_filter = (
-        'discount_type',
-        'num_uses',
-        'expiration_date',
-        'is_active')
-    readonly_fields = (
-        'creation_date',
-
-    )
-    exclude = ('is_deleted',)
+    search_fields = ("code", "discount", "num_uses", "discount_type")
+    list_filter = ("discount_type", "num_uses", "expiration_date", "is_active")
+    readonly_fields = ("creation_date",)
+    exclude = ("is_deleted",)
     inlines = [PurchaseInline, AvailablesInline]
 
     def formfield_for_dbfield(self, db_field, request, **kwargs):
-        if db_field.name == 'code':
-            kwargs['initial'] = "".join(random.choices(string.ascii_uppercase + string.digits, k=10))
+        if db_field.name == "code":
+            kwargs["initial"] = "".join(
+                random.choices(string.ascii_uppercase + string.digits, k=10)
+            )
         return super().formfield_for_dbfield(db_field, request, **kwargs)
 
     def get_purchase(self, obj):
         return models.Purchase.objects.filter(promo_code=obj).count()
-    get_purchase.short_description = 'Использован, раз'
 
-    @admin.action(description='Удалить')
+    get_purchase.short_description = "Использован, раз"
+
+    @admin.action(description="Удалить")
     def delete_selected(self, request, queryset):
         try:
             for obj in queryset:
                 obj.is_deleted = True
                 obj.save()
-            self.message_user(request,
-                              f"{len(queryset)} промокод(ов) удалено",
-                              messages.SUCCESS)
+            self.message_user(
+                request, f"{len(queryset)} промокод(ов) удалено", messages.SUCCESS
+            )
         except Exception:
-            self.message_user(request, "Что-то пошло не так, попробуйте снова.", messages.ERROR)
+            self.message_user(
+                request, "Что-то пошло не так, попробуйте снова.", messages.ERROR
+            )
 
-    @admin.action(description='Деактивировать')
+    @admin.action(description="Деактивировать")
     def deactivate_selected(self, request, queryset):
         try:
             for obj in queryset:
                 obj.is_active = False
                 obj.save()
-            self.message_user(request,
-                              f"{len(queryset)} промокод(ов) деактивировано",
-                              messages.SUCCESS)
+            self.message_user(
+                request,
+                f"{len(queryset)} промокод(ов) деактивировано",
+                messages.SUCCESS,
+            )
         except Exception:
-            self.message_user(request, "Что-то пошло не так, попробуйте снова.", messages.ERROR)
+            self.message_user(
+                request, "Что-то пошло не так, попробуйте снова.", messages.ERROR
+            )
 
     actions = [delete_selected, deactivate_selected]
 
 
 class Tariff(admin.ModelAdmin):
-    fields = [
-        ('name', 'price'),
-        'description'
-    ]
-    list_display = (
-        'name',
-        'price'
-    )
-    search_fields = [
-        'name',
-        'description'
-    ]
-    exclude = ('is_deleted',)
+    fields = [("name", "price"), "description"]
+    list_display = ("name", "price")
+    search_fields = ["name", "description"]
+    exclude = ("is_deleted",)
 
-    @admin.action(description='Удалить')
+    @admin.action(description="Удалить")
     def delete_selected(self, request, queryset):
         try:
             for obj in queryset:
                 obj.is_deleted = True
                 obj.save()
-            self.message_user(request,
-                              f"{len(queryset)} промокод(ов) удалено",
-                              messages.SUCCESS)
+            self.message_user(
+                request, f"{len(queryset)} промокод(ов) удалено", messages.SUCCESS
+            )
         except Exception:
-            self.message_user(request, "Что-то пошло не так, попробуйте снова.", messages.ERROR)
+            self.message_user(
+                request, "Что-то пошло не так, попробуйте снова.", messages.ERROR
+            )
 
     actions = [delete_selected]
 
 
 class Purchase(admin.ModelAdmin):
-    fields = [
-        'user',
-        ('tariff', 'promo_code'),
-        ('total_price', 'purchase_date')
-    ]
-    list_display = (
-        'user',
-        'tariff',
-        'promo_code',
-        'total_price',
-        'purchase_date'
-    )
-    search_fields = [
-        'user',
-        'tariff',
-        'promo_code'
-    ]
-    list_filter = ('purchase_date',)
-    readonly_fields = (
-        'user',
-        'tariff',
-        'promo_code',
-        'total_price',
-        'purchase_date'
-    )
+    fields = ["user", ("tariff", "promo_code"), ("total_price", "purchase_date")]
+    list_display = ("user", "tariff", "promo_code", "total_price", "purchase_date")
+    search_fields = ["user", "tariff", "promo_code"]
+    list_filter = ("purchase_date",)
+    readonly_fields = ("user", "tariff", "promo_code", "total_price", "purchase_date")
 
     def has_add_permission(self, request, obj=None):
         return False
 
 
 class AvailableForUsers(admin.ModelAdmin):
-    fields = [
-        'promo_code',
-        ('user', 'group')
-    ]
-    list_display = (
-        'promo_code',
-        'get_users',
-        'get_groups'
-    )
-    search_fields = [
-        'promo_code'
-    ]
+    fields = ["promo_code", ("user", "group")]
+    list_display = ("promo_code", "get_users", "get_groups")
+    search_fields = ["promo_code"]
 
     def get_users(self, obj):
         return ", ".join([str(user) for user in obj.user.all()])
-    get_users.short_description = 'Пользователи'
+
+    get_users.short_description = "Пользователи"
 
     def get_groups(self, obj):
         return ", ".join([str(group) for group in obj.group.all()])
-    get_groups.short_description = 'Группы пользователей'
+
+    get_groups.short_description = "Группы пользователей"
 
 
 admin.site.register(models.PromoCode, PromoCode)

@@ -15,24 +15,13 @@ from . import models
 
 
 class Group(admin.ModelAdmin):
-    list_display = (
-        'name',
-        'description'
-    )
+    list_display = ("name", "description")
 
 
 class User(admin.ModelAdmin):
-    fields = (
-        'username',
-        'group'
-    )
-    exclude = (
-        'password',
-        'last_login'
-    )
-    readonly_fields = (
-        'username',
-    )
+    fields = ("username", "group")
+    exclude = ("password", "last_login")
+    readonly_fields = ("username",)
 
     def has_add_permission(self, request, obj=None):
         return False

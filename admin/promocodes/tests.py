@@ -13,13 +13,15 @@ class PromoCodeModelTest(TestCase):
             discount_type=PromoCode.DiscountType.PERCENTAGE,
             num_uses=5,
             is_active=True,
-            expiration_date=timezone.now() + timezone.timedelta(days=30)
+            expiration_date=timezone.now() + timezone.timedelta(days=30),
         )
 
     def test_promo_code_creation(self):
         self.assertEqual(self.promo_code.code, "TEST2024")
         self.assertEqual(self.promo_code.discount, 10.0)
-        self.assertEqual(self.promo_code.discount_type, PromoCode.DiscountType.PERCENTAGE)
+        self.assertEqual(
+            self.promo_code.discount_type, PromoCode.DiscountType.PERCENTAGE
+        )
         self.assertEqual(self.promo_code.num_uses, 5)
         self.assertTrue(self.promo_code.is_active)
         self.assertIsNotNone(self.promo_code.creation_date)
@@ -31,10 +33,7 @@ class PromoCodeModelTest(TestCase):
 
     def test_num_uses(self):
         # Test default num_uses value
-        promo_code = PromoCode.objects.create(
-            code="TEST2025",
-            discount=5.0
-        )
+        promo_code = PromoCode.objects.create(code="TEST2025", discount=5.0)
         self.assertEqual(promo_code.num_uses, 1)
 
     def test_is_deleted(self):
@@ -51,9 +50,7 @@ class TariffModelTest(TestCase):
 
     def setUp(self):
         self.tariff = Tariff.objects.create(
-            name="Basic Plan",
-            price=29.99,
-            description="A basic plan for users."
+            name="Basic Plan", price=29.99, description="A basic plan for users."
         )
 
     def test_tariff_creation(self):
@@ -70,22 +67,20 @@ class PurchaseModelTest(TestCase):
     def setUp(self):
         self.user = User.objects.create(username="testuser")
         self.tariff = Tariff.objects.create(
-            name="Basic Plan",
-            price=29.99,
-            description="A basic plan for users."
+            name="Basic Plan", price=29.99, description="A basic plan for users."
         )
         self.promo_code = PromoCode.objects.create(
             code="TEST2024",
             discount=10.0,
             discount_type=PromoCode.DiscountType.PERCENTAGE,
             num_uses=5,
-            is_active=True
+            is_active=True,
         )
         self.purchase = Purchase.objects.create(
             user=self.user,
             tariff=self.tariff,
             promo_code=self.promo_code,
-            total_price=26.99  # Price after discount
+            total_price=26.99,  # Price after discount
         )
 
     def test_purchase_creation(self):
@@ -104,14 +99,18 @@ class AvailableForUsersModelTest(TestCase):
     def setUp(self):
         self.user1 = User.objects.create(username="testuser1")
         self.user2 = User.objects.create(username="testuser2")
-        self.group1 = Group.objects.create(name="Test Group 1", description="A test group 1")
-        self.group2 = Group.objects.create(name="Test Group 2", description="A test group 2")
+        self.group1 = Group.objects.create(
+            name="Test Group 1", description="A test group 1"
+        )
+        self.group2 = Group.objects.create(
+            name="Test Group 2", description="A test group 2"
+        )
         self.promo_code = PromoCode.objects.create(
             code="TEST2024",
             discount=10.0,
             discount_type=PromoCode.DiscountType.PERCENTAGE,
             num_uses=5,
-            is_active=True
+            is_active=True,
         )
         self.available = AvailableForUsers.objects.create(promo_code=self.promo_code)
         self.available.user.set([self.user1, self.user2])
@@ -130,7 +129,9 @@ class AvailableForUsersModelTest(TestCase):
         self.assertIn(new_user, self.available.user.all())
 
     def test_add_groups_to_available_for_users(self):
-        new_group = Group.objects.create(name="Test Group 3", description="A test group 3")
+        new_group = Group.objects.create(
+            name="Test Group 3", description="A test group 3"
+        )
         self.available.group.add(new_group)
         self.assertIn(new_group, self.available.group.all())
 
