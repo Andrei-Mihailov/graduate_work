@@ -19,9 +19,8 @@ class Group(admin.ModelAdmin):
 
 
 class User(admin.ModelAdmin):
-    fields = ("username", "group")
-    exclude = ("password", "last_login")
-    readonly_fields = ("username",)
+    fields = ("email", "group")
+    readonly_fields = ("email",)
 
     def has_add_permission(self, request, obj=None):
         return False
