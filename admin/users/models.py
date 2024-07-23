@@ -37,8 +37,6 @@ class User(models.Model):
     def __str__(self):
         return self.email
 
-    # def save()
-
     class Meta:
         db_table = "user"
         verbose_name = "Пользователь"

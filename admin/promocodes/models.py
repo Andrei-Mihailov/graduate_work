@@ -1,4 +1,7 @@
+import json
+
 from django.db import models
+from django.core.cache import cache
 
 
 class PromoCode(models.Model):
@@ -27,6 +30,13 @@ class PromoCode(models.Model):
 
     def __str__(self):
         return self.code
+
+    def save(self, *args, **kwargs):
+        if self.is_deleted or not self.is_active:
+            cache.delete(self.code)
+        else:
+            cache.set(self.code, 1)
+        return super(PromoCode, self).save(*args, **kwargs)
 
     class Meta:
         db_table = "promo_codes"

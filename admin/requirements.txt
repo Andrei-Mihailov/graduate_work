@@ -6,3 +6,4 @@ psycopg2_binary==2.9.9
 gunicorn==22.0.0
 StrEnum==0.4.15
 requests==2.31.0
+django-redis==5.4.0
