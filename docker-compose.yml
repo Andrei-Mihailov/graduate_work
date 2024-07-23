@@ -96,8 +96,10 @@ services:
       context: .
       dockerfile: ./admin/django.Dockerfile
     command: sh -c "python3 manage.py migrate --noinput && python3 manage.py collectstatic --no-input --clear && gunicorn config.wsgi:application --bind ${LOYALTY_ADMIN_HOST}:${LOYALTY_ADMIN_PORT}"
-    expose:
-      - "${LOYALTY_ADMIN_PORT}"
+    # expose:
+    #   - "${LOYALTY_ADMIN_PORT}"
+    ports:
+      - "8080:${LOYALTY_ADMIN_PORT}"
     volumes:
       - static_volume_all:/app/static
     depends_on:
