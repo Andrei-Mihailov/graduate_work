@@ -13,7 +13,7 @@ admin.site.unregister(Group)
 # генерация тестовых данных
 # for i in range(100):
 #     if i > 25:
-#         exp_date = datetime.datetime.now() + datetime.timedelta(days=i)
+#         exp_date = datetime.datetime.now() + datetime.timedelta(days=random.randint(1, 100))
 #     else:
 #         exp_date = None
 #     type_d = random.choices(models.PromoCode.DiscountType.values)[0]
@@ -30,10 +30,10 @@ admin.site.unregister(Group)
 #                                                      for _ in range(100)),
 #                                  price=random.randint(100, 500))
 
-# from users.models import User
+# from users.models import User as UserModel
 # for i in range(1000):
 #     try:
-#         user = User.objects.all()[random.randint(1, User.objects.count())]
+#         user = UserModel.objects.all()[random.randint(1, UserModel.objects.count())]
 #         tariff = models.Tariff.objects.get(id=random.randint(1, models.Tariff.objects.count()))
 #         promo_code = models.PromoCode.objects.get(id=random.randint(1, models.PromoCode.objects.count()))
 #         total_price = random.randint(200, 1000)
@@ -71,6 +71,10 @@ class AvailablesInline(admin.TabularInline):
     verbose_name = "Доступ"
     verbose_name_plural = "Доступы"
 
+    def get_users(self, obj):
+        return ", ".join([str(user) for user in obj.user.filter(is_active=True)])
+    get_users.short_description = "Пользователи"
+
 
 class PromoCode(admin.ModelAdmin):
     fields = [
@@ -100,6 +104,11 @@ class PromoCode(admin.ModelAdmin):
                 random.choices(string.ascii_uppercase + string.digits, k=10)
             )
         return super().formfield_for_dbfield(db_field, request, **kwargs)
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        qs = qs.filter(is_deleted=False)  # Только не удаленные промокоды
+        return qs
 
     def get_purchase(self, obj):
         return models.Purchase.objects.filter(promo_code=obj).count()
@@ -141,11 +150,11 @@ class PromoCode(admin.ModelAdmin):
 
 class Tariff(admin.ModelAdmin):
     fields = [("name", "price"), "description"]
-    list_display = ("name", "price")
-    search_fields = ["name", "description"]
+    list_display = ("name", "price", "description")
+    search_fields = ("name", "description")
     exclude = ("is_deleted",)
 
-    @admin.action(description="Удалить")
+    @ admin.action(description="Удалить")
     def delete_selected(self, request, queryset):
         try:
             for obj in queryset:
@@ -165,7 +174,7 @@ class Tariff(admin.ModelAdmin):
 class Purchase(admin.ModelAdmin):
     fields = ["user", ("tariff", "promo_code"), ("total_price", "purchase_date")]
     list_display = ("user", "tariff", "promo_code", "total_price", "purchase_date")
-    search_fields = ["user", "tariff", "promo_code"]
+    search_fields = ("user", "tariff", "promo_code")
     list_filter = ("purchase_date",)
     readonly_fields = ("user", "tariff", "promo_code", "total_price", "purchase_date")
 
@@ -176,10 +185,10 @@ class Purchase(admin.ModelAdmin):
 class AvailableForUsers(admin.ModelAdmin):
     fields = ["promo_code", ("user", "group")]
     list_display = ("promo_code", "get_users", "get_groups")
-    search_fields = ["promo_code"]
+    search_fields = ("promo_code",)
 
     def get_users(self, obj):
-        return ", ".join([str(user) for user in obj.user.all()])
+        return ", ".join([str(user) for user in obj.user.filter(is_active=True)])
 
     get_users.short_description = "Пользователи"
 
