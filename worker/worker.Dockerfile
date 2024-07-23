@@ -10,5 +10,3 @@ RUN apt-get update && apt-get -y install curl
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY ./worker .
-
-CMD python main.py

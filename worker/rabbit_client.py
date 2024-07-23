@@ -1,39 +1,41 @@
 import pika
-import time
+import pika.channel
 
-connection = pika.BlockingConnection(
-    pika.ConnectionParameters(host='localhost'))
-channel = connection.channel()
-
-channel.queue_declare(queue='new_user', durable=True)
-
-def callback(ch, method, properties, body):
-    time.sleep(body.count(b'.'))
-    ch.basic_ack(delivery_tag=method.delivery_tag)
+from settings import settings, NEW_USER_QUEUE, DELETE_USER_QUEUE
 
 
-channel.basic_qos(prefetch_count=1)
-channel.basic_consume(queue='new_user', on_message_callback=callback)
+class RabbitMq:
+    """Класс для взаимодействия с очередью сообщений."""
 
-channel.start_consuming()
+    def __init__(self) -> None:
+        self.credentials = pika.PlainCredentials(settings.rabbit_user, settings.rabbit_password)
+        self.connect = pika.SelectConnection(
+            parameters=pika.ConnectionParameters(
+                host=settings.rabbit_host,
+                port=settings.rabbit_port,
+                credentials=self.credentials,
+            ),
+            on_open_callback=self._on_open,
+        )
 
-# send message
-import pika
-import sys
+    def run(self) -> None:
+        try:
+            self.connect.ioloop.start()
+        except KeyboardInterrupt:
+            self.connect.close()
 
-connection = pika.BlockingConnection(
-    pika.ConnectionParameters(host='localhost'))
-channel = connection.channel()
+    def _on_channel_open(self, channel: pika.channel.Channel) -> None:
+        for queue in (NEW_USER_QUEUE, DELETE_USER_QUEUE):
+            channel.exchange_declare(
+                exchange="main", exchange_type="direct", durable=True, auto_delete=False
+            )
+            channel.basic_consume(queue=queue, on_message_callback=self._callback)
 
-channel.queue_declare(queue='new_user', durable=True)
+    def _on_open(self, connection: pika.SelectConnection) -> None:
+        connection.channel(on_open_callback=self._on_channel_open)
 
-message = ' '.join(sys.argv[1:]) or "Hello World!"
-channel.basic_publish(
-    exchange='',
-    routing_key='new_user',
-    body=message,
-    properties=pika.BasicProperties(
-        delivery_mode=pika.DeliveryMode.Persistent
-    ))
-print(f" [x] Sent {message}")
-connection.close()
+    @staticmethod
+    def _callback(channel: pika.channel.Channel, method, properties, body) -> None:
+        print(body)
+        channel.basic_ack(delivery_tag=method.delivery_tag)
+        

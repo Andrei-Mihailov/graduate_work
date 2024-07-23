@@ -53,7 +53,7 @@ services:
     build:
       context: .
       dockerfile: ./auth/auth.Dockerfile
-    command: sh -c "alembic upgrade head && python3 src/main.py"
+    command: sh -c "alembic upgrade head && python3 src/main.py --email=test --password=test"
     container_name: auth_service
     volumes:
       - ./auth/src/migrations:/app/src/migrations
@@ -81,8 +81,10 @@ services:
       POSTGRES_PASSWORD: ${LOYALTY_DB_PASSWORD}
     volumes:
       - pgdbloyalty_all:/var/lib/postgresql@13/data/
-    expose:
-      - "${LOYALTY_DB_PORT}"
+    # expose:
+    #   - "${LOYALTY_DB_PORT}"
+    ports:
+      - "5433:${LOYALTY_DB_PORT}"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d ${LOYALTY_DB_NAME} -U ${LOYALTY_DB_USER}"]
       interval: 5s
@@ -127,16 +129,19 @@ services:
   #   env_file:
   #     - ./loyalty/compose.env
 
-  # loyalty_worker:
-  #   build:
-  #     context: .
-  #     dockerfile: ./worker/worker.Dockerfile
-  #   container_name: loyalty_worker
-  #   depends_on:
-  #     rabbitmq:
-  #       condition: service_healthy
-  #     loyalty_db:
-  #       condition: service_healthy
+  loyalty_worker:
+    build:
+      context: .
+      dockerfile: ./worker/worker.Dockerfile
+    container_name: loyalty_worker
+    command: sh -c "python3 db.py"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      loyalty_db:
+        condition: service_healthy
+    env_file:
+      - ./worker/compose.env
 
   # # ------- nginx ------ #
   # nginx:
@@ -156,7 +161,16 @@ services:
   #   ports:
   #     - "${SERVICE_PORT}:80"
 
+  cloudbeaver:
+    image: dbeaver/cloudbeaver:24.0.5
+    container_name: services-dbeaver
+    ports:
+      - '8978:8978'
+    volumes: 
+      - cloudbeaver:/opt/cloudbeaver/workspace 
+
 volumes:
   pgdbauth_all:
   pgdbloyalty_all:
   static_volume_all:
+  cloudbeaver:
