@@ -10,7 +10,7 @@ from . import models
 admin.site.unregister(User)
 admin.site.unregister(Group)
 
-
+# генерация тестовых данных
 # for i in range(100):
 #     if i > 25:
 #         exp_date = datetime.datetime.now() + datetime.timedelta(days=i)
@@ -23,19 +23,29 @@ admin.site.unregister(Group)
 #                                     num_uses=random.randint(1, 50),
 #                                     expiration_date=exp_date,
 #                                     is_deleted=random.choice([True, False]))
+
+# for i in range(10):
+#     models.Tariff.objects.create(name=''.join(random.choice(string.ascii_letters + string.digits) for _ in range(10)),
+#                                  description=''.join(random.choice(string.ascii_letters + string.digits)
+#                                                      for _ in range(100)),
+#                                  price=random.randint(100, 500))
+
 # from users.models import User
 # for i in range(1000):
-#     user = User.objects.get(id=random.randint(1, User.objects.count()))
-#     tariff = models.Tariff.objects.get(id=random.randint(1, models.Tariff.objects.count()))
-#     promo_code = models.PromoCode.objects.get(id=random.randint(1, models.PromoCode.objects.count()))
-#     total_price = random.randint(200, 1000)
-#     purchase_date = datetime.datetime.now() - datetime.timedelta(days=random.randint(1, 100))
+#     try:
+#         user = User.objects.all()[random.randint(1, User.objects.count())]
+#         tariff = models.Tariff.objects.get(id=random.randint(1, models.Tariff.objects.count()))
+#         promo_code = models.PromoCode.objects.get(id=random.randint(1, models.PromoCode.objects.count()))
+#         total_price = random.randint(200, 1000)
+#         purchase_date = datetime.datetime.now() - datetime.timedelta(days=random.randint(1, 100))
 
-#     models.Purchase.objects.create(user=user,
-#                                    tariff=tariff,
-#                                    promo_code=promo_code,
-#                                    total_price=total_price,
-#                                    purchase_date=purchase_date)
+#         models.Purchase.objects.create(user=user,
+#                                        tariff=tariff,
+#                                        promo_code=promo_code,
+#                                        total_price=total_price,
+#                                        purchase_date=purchase_date)
+#     except:
+#         ...
 
 
 class PurchaseInline(admin.TabularInline):

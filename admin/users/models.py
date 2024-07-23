@@ -1,3 +1,5 @@
+import uuid
+
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser
 
@@ -21,6 +23,7 @@ class Group(models.Model):
 
 
 class User(models.Model):
+    uuid = models.UUIDField(default=uuid.uuid4)
     email = models.EmailField(
         primary_key=True,
         null=False,
@@ -33,7 +36,7 @@ class User(models.Model):
     is_active = models.BooleanField(default=True)
 
     def __str__(self):
-        return self.username
+        return self.email
 
     class Meta:
         db_table = "user"

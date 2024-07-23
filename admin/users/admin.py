@@ -3,12 +3,14 @@ import random
 import string
 from . import models
 
-
+# генерация тестовых данных
 # for i in range(5):
 #     models.Group.objects.create(name="".join(random.choices(string.ascii_letters, k=random.randint(5, 10))))
 
+# domain = "example.com"
 # for i in range(100):
-#     user = models.User.objects.create(username="".join(random.choices(string.ascii_letters, k=random.randint(10, 15))))
+#     username = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(10))
+#     user = models.User.objects.create(email=f"{username}@{domain}")
 #     for k in range(random.randint(1, 5)):
 #         group = models.Group.objects.get(id=random.randint(1, 5))
 #         user.group.add(group)
