@@ -28,6 +28,7 @@ include(
     "components/middlewares.py",
     "components/templates.py",
     "components/pass_validators.py",
+    "components/caches.py",
 )
 
 ALLOWED_HOSTS = (
