@@ -51,3 +51,12 @@ auth-api:
 /refresh_token - обновление рефреш токена
 /delete - удаление из системы
 ```
+
+### Работа с миграциями в docker-контейнерах
+для работы с миграциями использовалась библиотека alembic
+
+Автоматическое создание миграции
+docker-compose exec auth_service alembic revision --autogenerate -m "Сomment migration"
+
+Обновление бд по последней миграции
+docker-compose exec auth_service alembic upgrade head

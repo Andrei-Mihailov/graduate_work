@@ -6,29 +6,40 @@ import asyncio
 import functools as ft
 from fastapi.responses import ORJSONResponse
 from redis.asyncio import Redis
+from redis.exceptions import ConnectionError
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends
+from aio_pika import connect_robust
+from aio_pika.exceptions import AMQPConnectionError
+from backoff import on_exception, expo
 
 from core.config import settings
 from db import postgres_db
 from db import redis_db
 from api.v1.service import check_jwt
 from api.v1 import users, roles, permissions
+from services.broker_service import broker_service
 
 
+@on_exception(expo, (AMQPConnectionError, ConnectionError), max_tries=10)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     redis_db.redis = Redis(host=settings.redis_host, port=settings.redis_port)
+    broker_service.connection = await connect_robust(settings.rabbit_connection)
+    broker_service.channel = await broker_service.connection.channel()
+    broker_service.exchange = await broker_service.channel.declare_exchange(settings.rabbit_exchange)
     yield
     await redis_db.redis.close()
+    await broker_service.channel.close()
+    await broker_service.connection.close()
 
 
 app = FastAPI(
     lifespan=lifespan,
     title="Сервис авторизации",
     description="Реализует методы идентификации, аутентификации, авторизации",
-    docs_url="/api/openapi",
-    openapi_url="/api/openapi.json",
+    docs_url="/auth/api/openapi",
+    openapi_url="/auth/api/openapi.json",
     default_response_class=ORJSONResponse,
 )
 
@@ -76,12 +87,12 @@ async def create_superuser(email, password):
         click.echo(f"Superuser {email} created successfully!")
 
 
-app.include_router(users.router, prefix="/api/v1/users")
+app.include_router(users.router, prefix="/auth/api/v1/users")
 app.include_router(
-    roles.router, prefix="/api/v1/roles", dependencies=[Depends(check_jwt)]
+    roles.router, prefix="/auth/api/v1/roles", dependencies=[Depends(check_jwt)]
 )
 app.include_router(
-    permissions.router, prefix="/api/v1/permissions", dependencies=[Depends(check_jwt)]
+    permissions.router, prefix="/auth/api/v1/permissions", dependencies=[Depends(check_jwt)]
 )
 
 

@@ -14,7 +14,9 @@ from api.v1.schemas.users import UserParams, UserSchema, UserEditParams
 from api.v1.schemas.roles import PermissionsParams
 from services.user import UserService, get_user_service
 from services.auth import AuthService, get_auth_service
+from services.broker_service import BrokerService, get_broker_service
 from .service import get_tokens_from_cookie, PaginationParams
+from models.broker import EventType, UserResponce
 
 router = APIRouter()
 
@@ -76,10 +78,13 @@ async def login(
 async def user_registration(
     user_params: Annotated[UserParams, Depends()],
     user_service: UserService = Depends(get_user_service),
+    broker_service: BrokerService = Depends(get_broker_service),
 ) -> UserSchema:
     try:
         user = await user_service.create_user(user_params)
         if user is not None:
+            user_responce = UserResponce(uuid=str(user.id), email=user.email, is_deleted=not user.active)
+            await broker_service.put_one_message_to_queue(event=EventType.registration, user=user_responce)
             return UserSchema(
                 uuid=str(user.id),
                 email=user.email,
@@ -140,6 +145,37 @@ async def change_user_info(
             detail="Произошла ошибка при изменении данных пользователя",
         )
 
+# /api/v1/users/delete
+@router.post(
+    "/delete",
+    response_model=bool,
+    status_code=status.HTTP_200_OK,
+    summary="Удаление профиля пользователя",
+    description="Удаление профиля пользователя",
+    tags=["Пользователи"],
+    dependencies=[Depends(check_jwt)],
+)
+async def delete_user(
+    request: Request,
+    user_service: UserService = Depends(get_user_service),
+    broker_service: BrokerService = Depends(get_broker_service)
+) -> bool:
+    try:
+        tokens = get_tokens_from_cookie(request)    
+        user_params = {'first_name': None, 'last_name': None, 'active': False}   
+        change_user = await user_service.change_user_info(tokens.access_token, user_params)
+        user_responce = UserResponce(uuid=str(change_user.id), email=change_user.email, is_deleted=True)
+        await user_service.logout(
+            access_token=tokens.access_token, refresh_token=tokens.refresh_token
+        )
+        await broker_service.put_one_message_to_queue(event=EventType.delete, user=user_responce)
+        return True
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Произошла ошибка при удалении данных пользователя",
+        )
 
 # /api/v1/users/logout
 @router.post(

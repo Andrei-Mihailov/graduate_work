@@ -1,7 +1,7 @@
 import os
 from logging import config as logging_config
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings
 from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer
@@ -41,8 +41,20 @@ class Settings(BaseSettings):
     pwd_context: CryptContext = CryptContext(schemes=["bcrypt"], deprecated="auto")
     oauth2_scheme: OAuth2PasswordBearer = OAuth2PasswordBearer(tokenUrl="token")
 
+    # Настройки rabbit
+    rabbit_host: str
+    rabbit_port: int
+    rabbit_user: str
+    rabbit_password: str
+    rabbit_delivery_mode: int
+    rabbit_exchange: str
+    
     class Config:
         env_file = ".env"
+    
+    @property
+    def rabbit_connection(self):
+        return f"amqp://{self.rabbit_user}:{self.rabbit_password}@{self.rabbit_host}/"
 
 
 settings = Settings()

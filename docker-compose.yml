@@ -39,8 +39,10 @@ services:
       POSTGRES_PASSWORD: ${AUTH_DB_PASSWORD}
     volumes:
       - pgdbauth_all:/var/lib/postgresql@13/data/
-    expose:
-      - "${AUTH_DB_PORT}"
+    # expose:
+    #   - "${AUTH_DB_PORT}"
+    ports:
+      - "${AUTH_DB_PORT}:${AUTH_DB_PORT}"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d ${AUTH_DB_NAME} -U ${AUTH_DB_USER}"]
       interval: 5s
@@ -53,8 +55,12 @@ services:
       dockerfile: ./auth/auth.Dockerfile
     command: sh -c "alembic upgrade head && python3 src/main.py"
     container_name: auth_service
-    expose:
-      - "${AUTH_API_PORT}"
+    volumes:
+      - ./auth/src/migrations:/app/src/migrations
+    # expose:
+    #   - "${AUTH_API_PORT}"
+    ports:
+      - "${AUTH_API_PORT}:${AUTH_API_PORT}"
     depends_on:
       redis:
         condition: service_healthy
@@ -65,7 +71,7 @@ services:
     env_file:
       - ./auth/compose.env
 
-  # ------- loyalty service ------ #
+  # # ------- loyalty service ------ #
   loyalty_db:
     image: postgres:13
     container_name: loyalty_db
@@ -103,50 +109,50 @@ services:
       - ./admin/compose.env
 
 
-  loyalty_api_service:
-    container_name: loyalty_api_service
-    build:
-      context: .
-      dockerfile: ./loyalty/loyalty.Dockerfile
-    expose:
-      - "${LOYALTY_API_PORT}"
-    command: sh -c "python src/main.py"
-    depends_on:
-      loyalty_db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    env_file:
-      - ./loyalty/compose.env
+  # loyalty_api_service:
+  #   container_name: loyalty_api_service
+  #   build:
+  #     context: .
+  #     dockerfile: ./loyalty/loyalty.Dockerfile
+  #   expose:
+  #     - "${LOYALTY_API_PORT}"
+  #   command: sh -c "python src/main.py"
+  #   depends_on:
+  #     loyalty_db:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #   env_file:
+  #     - ./loyalty/compose.env
 
-  loyalty_worker:
-    build:
-      context: .
-      dockerfile: ./worker/worker.Dockerfile
-    container_name: loyalty_worker
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      loyalty_db:
-        condition: service_healthy
+  # loyalty_worker:
+  #   build:
+  #     context: .
+  #     dockerfile: ./worker/worker.Dockerfile
+  #   container_name: loyalty_worker
+  #   depends_on:
+  #     rabbitmq:
+  #       condition: service_healthy
+  #     loyalty_db:
+  #       condition: service_healthy
 
-  # ------- nginx ------ #
-  nginx:
-    image: nginx:latest
-    container_name: nginx
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/site.conf:/etc/nginx/conf.d/site.conf:ro
-      - static_volume_all:/app/static:ro
-    depends_on:
-      auth_service:
-        condition: service_started
-      loyalty_api_service:
-        condition: service_started
-      loyalty_admin_service:
-        condition: service_started
-    ports:
-      - "${SERVICE_PORT}:80"
+  # # ------- nginx ------ #
+  # nginx:
+  #   image: nginx:latest
+  #   container_name: nginx
+  #   volumes:
+  #     - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./nginx/site.conf:/etc/nginx/conf.d/site.conf:ro
+  #     - static_volume_all:/app/static:ro
+  #   depends_on:
+  #     auth_service:
+  #       condition: service_started
+  #     loyalty_api_service:
+  #       condition: service_started
+  #     loyalty_admin_service:
+  #       condition: service_started
+  #   ports:
+  #     - "${SERVICE_PORT}:80"
 
 volumes:
   pgdbauth_all:

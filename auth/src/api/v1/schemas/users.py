@@ -25,7 +25,7 @@ class UserParams(BaseModel):
 
 
 class UserEditParams(BaseModel):
-    email: Union[str, None] = Field(description="Email", default=None, allow_none=True)
+    # email: Union[str, None] = Field(description="Email", default=None, allow_none=True)
     first_name: Union[str, None] = Field(
         description="Имя", default=None, allow_none=True
     )

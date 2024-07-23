@@ -8,7 +8,11 @@ import sys
 from fastapi import FastAPI, Depends
 from fastapi.responses import ORJSONResponse
 from redis.asyncio import Redis
+from redis.exceptions import ConnectionError
 from contextlib import asynccontextmanager
+from aio_pika import connect_robust
+from aio_pika.exceptions import AMQPConnectionError
+from backoff import on_exception, expo
 
 from api.v1 import users, roles, permissions
 from db import postgres_db
@@ -16,21 +20,28 @@ from db import redis_db
 from core.config import settings
 from api.v1.service import check_jwt
 import sentry_sdk
+from services.broker_service import broker_service
 
 
+@on_exception(expo, (AMQPConnectionError, ConnectionError), max_tries=10)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     redis_db.redis = Redis(host=settings.redis_host, port=settings.redis_port)
+    broker_service.connection = await connect_robust(settings.rabbit_connection)
+    broker_service.channel = await broker_service.connection.channel()
+    broker_service.exchange = await broker_service.channel.declare_exchange(settings.rabbit_exchange)
     yield
     await redis_db.redis.close()
+    await broker_service.channel.close()
+    await broker_service.connection.close()
 
 
 app = FastAPI(
     lifespan=lifespan,
     title="Сервис авторизации",
     description="Реализует методы идентификации, аутентификации, авторизации",
-    docs_url="/api/openapi",
-    openapi_url="/api/openapi.json",
+    docs_url="/auth/api/openapi",
+    openapi_url="/auth/api/openapi.json",
     default_response_class=ORJSONResponse,
 )
 
@@ -65,12 +76,12 @@ class StandaloneApplication(gunicorn.app.base.BaseApplication):
         return self.application
 
 
-app.include_router(users.router, prefix="/api/v1/users")
+app.include_router(users.router, prefix="/auth/api/v1/users")
 app.include_router(
-    roles.router, prefix="/api/v1/roles", dependencies=[Depends(check_jwt)]
+    roles.router, prefix="/auth/api/v1/roles", dependencies=[Depends(check_jwt)]
 )
 app.include_router(
-    permissions.router, prefix="/api/v1/permissions", dependencies=[Depends(check_jwt)]
+    permissions.router, prefix="/auth/api/v1/permissions", dependencies=[Depends(check_jwt)]
 )
 
 
@@ -130,7 +141,7 @@ if __name__ == "__main__":
         create_superuser()
     else:
         options = {
-            "bind": "%s:%s" % ("0.0.0.0", "8080"),
+            "bind": "%s:%s" % ("0.0.0.0", "8000"),
             "workers": number_of_workers(),
             "worker_class": "uvicorn.workers.UvicornWorker",
         }
