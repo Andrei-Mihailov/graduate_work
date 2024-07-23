@@ -73,21 +73,20 @@ class User(admin.ModelAdmin):
                         Q(user=obj, promo_code_id=promo_code) |
                         Q(group__in=obj.group.all(), promo_code_id=promo_code)
                     ).values('promo_code').annotate(count=Count('promo_code')).count():
-                        AvailableForUsers.objects.create(user=obj,
-                                                         promo_code_id=promo_code)
+                        avu, _ = AvailableForUsers.objects.get_or_create(promo_code_id=promo_code)
+                        avu.user.add(obj)
                     count_users += 1
-                    self.message_user(
-                        request, f"/apply_promocode?promocode_id={promo_code}&tariff={tariff}\nПрименено промокодов: {count_users}", messages.SUCCESS
-                    )
+                    mess = f"/apply_promocode?promocode_id={promo_code}&tariff={tariff}"
+                    type_mess = messages.SUCCESS
                 else:
                     if count_users:
-                        self.message_user(
-                            request, f"/apply_promocode?promocode_id={promo_code}&tariff={tariff}\nПрименено промокодов: {count_users}", messages.WARNING
-                        )
+                        mess = f"/apply_promocode?promocode_id={promo_code}&tariff={tariff} -----> Применено промокодов: {count_users}"
+                        type_mess = messages.WARNING
                     else:
-                        self.message_user(
-                            request, "Количество допустимых применений промокода равно 0", messages.ERROR
-                        )
+                        mess = "Количество допустимых применений промокода равно 0"
+                        type_mess = messages.ERROR
+                    break
+            self.message_user(request, mess, type_mess)
         except Exception:
             self.message_user(
                 request, "Что-то пошло не так, попробуйте снова", messages.ERROR

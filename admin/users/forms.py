@@ -1,3 +1,5 @@
+import datetime
+
 from django.contrib.admin.helpers import ActionForm
 from django import forms
 
@@ -6,7 +8,10 @@ from promocodes.models import PromoCode, Tariff
 
 class XForm(ActionForm):
     promo_code = forms.ModelChoiceField(
-        queryset=PromoCode.objects.filter(is_active=True, is_deleted=False),
+        queryset=PromoCode.objects.filter(is_active=True,
+                                          is_deleted=False,
+                                          num_uses__gte=0,
+                                          expiration_date__gte=datetime.datetime.now()),
         label='Промокод:',
         required=False,
         empty_label="Выберите промокод"

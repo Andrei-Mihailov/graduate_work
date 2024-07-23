@@ -107,7 +107,9 @@ class PromoCode(admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        qs = qs.filter(is_deleted=False)  # Только не удаленные промокоды
+        qs = qs.filter(is_deleted=False,  # Только не удаленные промокоды
+                       expiration_date__gte=datetime.datetime.now(),  # подходящие по сроку действия
+                       num_uses__gte=0)  # доступные для использования
         return qs
 
     def get_purchase(self, obj):
