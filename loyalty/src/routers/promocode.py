@@ -71,7 +71,7 @@ async def apply_promocode(
     if final_amount < 0:
         final_amount = 0
 
-    promo_usage = PromoUsage(user_id=user['id'], promocode_id=promocode.id)
+    promo_usage = PromoUsage(user_id=user['id'], promocode_id=promocode.id, is_successful=True)
     db.add(promo_usage)
     db.commit()
     db.refresh(promo_usage)
@@ -107,19 +107,15 @@ async def get_active_promocodes(
     ).all()
     return active_promocodes
 
-class ApplyPromocodeWithParamsRequest(BaseModel):
-    promocode_id: int
-    tariff: float
-
 @router.get(
-    "/apply_promocode_with_params/",
+    "/use_promocode/",
     response_model=PromocodeResponse,
-    summary="Применить промокод с параметрами",
-    description="Применить промокод по ID с дополнительными параметрами",
+    summary="Покупка тарифа по промокоду",
+    description="Покупка тарифа по промокоду",
     response_description="Тип и значение скидки и итоговая стоимость",
     tags=["Промокоды"],
 )
-async def apply_promocode_with_params(
+async def use_promocode(
     promocode_id: int = Query(..., description="ID промокода"),
     tariff: float = Query(..., description="Тариф, связанный с промокодом"),
     db: Session = Depends(get_db),
@@ -164,7 +160,7 @@ async def apply_promocode_with_params(
     if final_amount < 0:
         final_amount = 0
 
-    promo_usage = PromoUsage(user_id=user['id'], promocode_id=promocode.id)
+    promo_usage = PromoUsage(user_id=user['id'], promocode_id=promocode.id, is_successful=True)
     db.add(promo_usage)
     db.commit()
     db.refresh(promo_usage)
@@ -174,3 +170,33 @@ async def apply_promocode_with_params(
         discount_value=discount_value,
         final_amount=final_amount
     )
+
+@router.get(
+    "/cancel_use_promocode/",
+    summary="Отмена использования промокода",
+    description="Отмена использования промокода",
+    response_description="Сообщение об успешной отмене",
+    tags=["Промокоды"],
+)
+async def cancel_use_promocode(
+    promocode_id: int = Query(..., description="ID промокода"),
+    db: Session = Depends(get_db),
+    user: Annotated[dict, Depends(security_jwt)]
+) -> dict:
+    promo_usage = db.query(PromoUsage).filter(
+        PromoUsage.promocode_id == promocode_id,
+        PromoUsage.user_id == user['id'],
+        PromoUsage.is_successful == True
+    ).first()
+
+    if not promo_usage:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="Использование промокода не найдено"
+        )
+
+    promo_usage.is_successful = False
+    db.commit()
+    db.refresh(promo_usage)
+
+    return {"message": "Использование промокода успешно отменено"}
