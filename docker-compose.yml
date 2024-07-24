@@ -134,7 +134,7 @@ services:
       context: .
       dockerfile: ./worker/worker.Dockerfile
     container_name: loyalty_worker
-    command: sh -c "python3 db.py"
+    command: sh -c "python3 main.py"
     depends_on:
       rabbitmq:
         condition: service_healthy
