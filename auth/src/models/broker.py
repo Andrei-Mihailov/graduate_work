@@ -23,4 +23,4 @@ class UserResponce(BaseModel):
     """Модель пользователя для синхронизации"""
     uuid: UUID
     email: str
-    is_deleted: bool
+    is_active: bool

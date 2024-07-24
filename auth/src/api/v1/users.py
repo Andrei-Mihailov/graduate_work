@@ -83,7 +83,7 @@ async def user_registration(
     try:
         user = await user_service.create_user(user_params)
         if user is not None:
-            user_responce = UserResponce(uuid=str(user.id), email=user.email, is_deleted=not user.active)
+            user_responce = UserResponce(uuid=str(user.id), email=user.email, is_active=user.active)
             await broker_service.put_one_message_to_queue(event=EventType.registration, user=user_responce)
             return UserSchema(
                 uuid=str(user.id),
@@ -164,7 +164,7 @@ async def delete_user(
         tokens = get_tokens_from_cookie(request)    
         user_params = {'first_name': None, 'last_name': None, 'active': False}   
         change_user = await user_service.change_user_info(tokens.access_token, user_params)
-        user_responce = UserResponce(uuid=str(change_user.id), email=change_user.email, is_deleted=True)
+        user_responce = UserResponce(uuid=str(change_user.id), email=change_user.email, is_active=False)
         await user_service.logout(
             access_token=tokens.access_token, refresh_token=tokens.refresh_token
         )

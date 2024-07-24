@@ -1,7 +1,8 @@
 import pika
 import pika.channel
 
-from settings import settings, NEW_USER_QUEUE, DELETE_USER_QUEUE
+from core.settings import settings, NEW_USER_QUEUE, DELETE_USER_QUEUE
+from db.postgres_db import check_user
 
 
 class RabbitMq:
@@ -36,6 +37,6 @@ class RabbitMq:
 
     @staticmethod
     def _callback(channel: pika.channel.Channel, method, properties, body) -> None:
-        print(body)
+        check_user(uuid=body['uuid'], email=body['email'], is_active=body['is_active'])
         channel.basic_ack(delivery_tag=method.delivery_tag)
         
