@@ -128,20 +128,12 @@ async def use_promocode(
 
     if not promocode:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Промокод не найден или истек"
-        )
+            status_code
 
-    if promocode.usage_limit is not None:
-        usage_count = db.query(PromoUsage).filter_by(
-            promocode_id=promocode.id,
-            is_successful=True
-        ).count()
-        if usage_count >= promocode.usage_limit:
-            raise HTTPException(
-                status_code=HTTPStatus.BAD_REQUEST,
-                detail="Достигнут лимит использования промокода"
-            )
+
+=HTTPStatus.NOT_FOUND,
+            detail="Промокод не найден"
+        )
 
     if promocode.expiration_date and promocode.expiration_date < datetime.utcnow().date():
         raise HTTPException(
@@ -150,12 +142,7 @@ async def use_promocode(
         )
 
     discount_value = promocode.discount_value
-    final_amount = tariff
-
-    if promocode.discount_type == "percentage":
-        final_amount = tariff * (1 - discount_value / 100)
-    elif promocode.discount_type == "fixed":
-        final_amount = tariff - discount_value
+    final_amount = tariff - discount_value
 
     if final_amount < 0:
         final_amount = 0
@@ -170,33 +157,3 @@ async def use_promocode(
         discount_value=discount_value,
         final_amount=final_amount
     )
-
-@router.get(
-    "/cancel_use_promocode/",
-    summary="Отмена использования промокода",
-    description="Отмена использования промокода",
-    response_description="Сообщение об успешной отмене",
-    tags=["Промокоды"],
-)
-async def cancel_use_promocode(
-    promocode_id: int = Query(..., description="ID промокода"),
-    db: Session = Depends(get_db),
-    user: Annotated[dict, Depends(security_jwt)]
-) -> dict:
-    promo_usage = db.query(PromoUsage).filter(
-        PromoUsage.promocode_id == promocode_id,
-        PromoUsage.user_id == user['id'],
-        PromoUsage.is_successful == True
-    ).first()
-
-    if not promo_usage:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Использование промокода не найдено"
-        )
-
-    promo_usage.is_successful = False
-    db.commit()
-    db.refresh(promo_usage)
-
-    return {"message": "Использование промокода успешно отменено"}
