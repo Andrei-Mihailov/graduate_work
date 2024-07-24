@@ -1,3 +1,4 @@
+import logging
 import sentry_sdk
 from fastapi import FastAPI
 from sentry_sdk.integrations.logging import LoggingIntegration
@@ -7,13 +8,8 @@ from middleware import sentry_exception_middleware
 from database import engine
 from models import Base
 
-sentry_sdk.init(
-    dsn="https://7e322a912461958b85dcdf23716aeff5@o4507457845592064.ingest.de.sentry.io/4507457848016976",
-    traces_sample_rate=1.0,
-    profiles_sample_rate=1.0,
-)
-
 sentry_logging = LoggingIntegration(level=logging.INFO, event_level=logging.ERROR)
+
 sentry_sdk.init(
     dsn="https://7e322a912461958b85dcdf23716aeff5@o4507457845592064.ingest.de.sentry.io/4507457848016976",
     integrations=[sentry_logging],
@@ -21,12 +17,15 @@ sentry_sdk.init(
     profiles_sample_rate=1.0,
 )
 
+
 app = FastAPI()
 
 Base.metadata.create_all(bind=engine)
 
+app.middleware("http")(sentry_exception_middleware)
+
+app.add_middleware(SentryAsgiMiddleware)
+
+
 app.include_router(promocode.router)
 app.include_router(root.router)
-
-app.middleware("http")(sentry_exception_middleware)
-app.add_middleware(SentryAsgiMiddleware)
