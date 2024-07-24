@@ -1,5 +1,8 @@
+import uuid
+
 from django.test import TestCase
 from django.utils import timezone
+
 from .models import PromoCode, Tariff, Purchase, AvailableForUsers
 from users.models import User, Group
 
@@ -28,6 +31,11 @@ class PromoCodeModelTest(TestCase):
     def test_str_method(self):
         self.assertEqual(str(self.promo_code), "TEST2024")
 
+    def test_promo_code_delete(self):
+        self.assertFalse(self.promo_code.is_deleted)
+        self.promo_code.is_deleted = True
+        self.assertTrue(self.promo_code.is_deleted)
+
 
 class TariffModelTest(TestCase):
 
@@ -45,12 +53,15 @@ class TariffModelTest(TestCase):
 
     def test_is_deleted_default(self):
         self.assertFalse(self.tariff.is_deleted)
+        self.tariff.is_deleted = True
+        self.assertTrue(self.tariff.is_deleted)
 
 
 class PurchaseModelTest(TestCase):
 
     def setUp(self):
-        self.user = User.objects.create(username="testuser")
+        self.user = User.objects.create(uuid=uuid.uuid4(),
+                                        email="testuser@example.com")
         self.tariff = Tariff.objects.create(
             name="Basic Plan",
             price=29.99,
@@ -81,7 +92,8 @@ class PurchaseModelTest(TestCase):
 class AvailableForUsersModelTest(TestCase):
 
     def setUp(self):
-        self.user = User.objects.create(username="testuser")
+        self.user = self.user = User.objects.create(uuid=uuid.uuid4(),
+                                                    email="testuser@example.com")
         self.group = Group.objects.create(name="Test Group", description="A test group")
         self.promo_code = PromoCode.objects.create(
             code="TEST2024",
