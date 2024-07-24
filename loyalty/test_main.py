@@ -3,17 +3,18 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime, timedelta
+
 from main import app
-from models.promocode import Promocode
-from models.user import User
-from db.database import get_db
-from models.base import Base
+from models import Promocode, PromoUsage, User
+from database import get_db
+from utils.auth import create_jwt_token
 
 DATABASE_URL = "sqlite+aiosqlite:///./test.db"
 
+# Создаем асинхронный движок и сессию для тестирования
 async_engine = create_async_engine(DATABASE_URL, echo=True)
 TestingSessionLocal = sessionmaker(
-    autocommit=False, autoflush=False, bind=async_engine, class_=AsyncSession
+    bind=async_engine, class_=AsyncSession, expire_on_commit=False
 )
 
 
@@ -31,7 +32,6 @@ async def db_session():
     try:
         yield session
     finally:
-        await session.close()
         async with async_engine.begin() as conn:
             await conn.run_sync(Base.metadata.drop_all)
 
@@ -49,17 +49,24 @@ async def override_get_db(db_session):
     app.dependency_overrides[get_db] = get_db
 
 
-@pytest.mark.asyncio
-async def test_apply_promocode(async_client, override_get_db, db_session):
+@pytest.fixture(scope="function")
+async def jwt_token():
     user = User(
         username="testuser",
         email="testuser@example.com",
         hashed_password="hashed_password",
     )
-    db_session.add(user)
-    await db_session.commit()
-    await db_session.refresh(user)
+    async with TestingSessionLocal() as session:
+        session.add(user)
+        await session.commit()
+        await session.refresh(user)
+    token = create_jwt_token(user_id=user.id)
+    return token, user
 
+
+@pytest.mark.asyncio
+async def test_apply_promocode(async_client, override_get_db, jwt_token, db_session):
+    token, user = jwt_token
     promocode = Promocode(
         code="TESTCODE",
         discount_type="percentage",
@@ -70,19 +77,24 @@ async def test_apply_promocode(async_client, override_get_db, db_session):
     )
     db_session.add(promocode)
     await db_session.commit()
-    await db_session.refresh(promocode)
 
     response = await async_client.post(
-        "/api/v1/apply_promocode/", json={"code": "TESTCODE", "user_id": user.id}
+        "/api/v1/apply_promocode/",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"code": "TESTCODE", "total_amount": 100},
     )
     assert response.status_code == 200
     data = response.json()
     assert data["discount_type"] == "percentage"
     assert data["discount_value"] == 10
+    assert data["final_amount"] == 90
 
 
 @pytest.mark.asyncio
-async def test_get_active_promocodes(async_client, override_get_db, db_session):
+async def test_get_active_promocodes(
+    async_client, override_get_db, jwt_token, db_session
+):
+    token, _ = jwt_token
     promocode = Promocode(
         code="ACTIVECODE",
         discount_type="percentage",
@@ -93,9 +105,10 @@ async def test_get_active_promocodes(async_client, override_get_db, db_session):
     )
     db_session.add(promocode)
     await db_session.commit()
-    await db_session.refresh(promocode)
 
-    response = await async_client.get("/api/v1/get_active_promocodes")
+    response = await async_client.get(
+        "/api/v1/get_active_promocodes", headers={"Authorization": f"Bearer {token}"}
+    )
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 1
@@ -104,17 +117,12 @@ async def test_get_active_promocodes(async_client, override_get_db, db_session):
 
 
 @pytest.mark.asyncio
-async def test_apply_promocode_with_params(async_client, override_get_db, db_session):
-    user = User(
-        username="testuser2",
-        email="testuser2@example.com",
-        hashed_password="hashed_password2",
-    )
-    db_session.add(user)
-    await db_session.commit()
-    await db_session.refresh(user)
-
+async def test_apply_promocode_with_params(
+    async_client, override_get_db, jwt_token, db_session
+):
+    token, user = jwt_token
     promocode = Promocode(
+        id=1,
         code="PARAMCODE",
         discount_type="fixed",
         discount_value=20,
@@ -124,14 +132,14 @@ async def test_apply_promocode_with_params(async_client, override_get_db, db_ses
     )
     db_session.add(promocode)
     await db_session.commit()
-    await db_session.refresh(promocode)
 
     response = await async_client.get(
         "/api/v1/apply_promocode_with_params/",
-        params={"promocode_id": promocode.id, "tariff": 100, "user_id": user.id},
+        headers={"Authorization": f"Bearer {token}"},
+        params={"promocode_id": promocode.id, "tariff": 100, "total_amount": 100},
     )
     assert response.status_code == 200
     data = response.json()
     assert data["discount_type"] == "fixed"
     assert data["discount_value"] == 20
-    assert data["tariff"] == 100
+    assert data["final_amount"] == 80
