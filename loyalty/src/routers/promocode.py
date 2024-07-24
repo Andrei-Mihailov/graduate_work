@@ -118,9 +118,9 @@ async def get_active_promocodes(
 async def use_promocode(
     promocode_id: int = Query(..., description="ID промокода"),
     tariff: float = Query(..., description="Тариф, связанный с промокодом"),
-    db: Session = Depends(get_db),
-    user: Annotated[dict, Depends(security_jwt)]
 ) -> PromocodeResponse:
+    db = Depends(get_db)
+    user = Annotated[dict, Depends(security_jwt)]
     promocode = db.query(Promocode).filter(
         Promocode.id == promocode_id,
         Promocode.is_active == True
