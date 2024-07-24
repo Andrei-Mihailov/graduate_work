@@ -81,3 +81,96 @@ async def apply_promocode(
         discount_value=discount_value,
         final_amount=final_amount
     )
+
+class ActivePromocodeResponse(BaseModel):
+    id: int
+    code: str
+    discount_type: str
+    discount_value: float
+    expiration_date: datetime
+
+@router.get(
+    "/get_active_promocodes/",
+    response_model=list[ActivePromocodeResponse],
+    summary="Получить активные промокоды",
+    description="Получить все активные промокоды",
+    response_description="Список активных промокодов",
+    tags=["Промокоды"],
+)
+async def get_active_promocodes(
+    db: Session = Depends(get_db),
+    user: Annotated[dict, Depends(security_jwt)]
+) -> list[ActivePromocodeResponse]:
+    active_promocodes = db.query(Promocode).filter(
+        Promocode.is_active == True,
+        Promocode.expiration_date >= datetime.utcnow().date()
+    ).all()
+    return active_promocodes
+
+class ApplyPromocodeWithParamsRequest(BaseModel):
+    promocode_id: int
+    tariff: float
+
+@router.get(
+    "/apply_promocode_with_params/",
+    response_model=PromocodeResponse,
+    summary="Применить промокод с параметрами",
+    description="Применить промокод по ID с дополнительными параметрами",
+    response_description="Тип и значение скидки и итоговая стоимость",
+    tags=["Промокоды"],
+)
+async def apply_promocode_with_params(
+    promocode_id: int = Query(..., description="ID промокода"),
+    tariff: float = Query(..., description="Тариф, связанный с промокодом"),
+    db: Session = Depends(get_db),
+    user: Annotated[dict, Depends(security_jwt)]
+) -> PromocodeResponse:
+    promocode = db.query(Promocode).filter(
+        Promocode.id == promocode_id,
+        Promocode.is_active == True
+    ).first()
+
+    if not promocode:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="Промокод не найден или истек"
+        )
+
+    if promocode.usage_limit is not None:
+        usage_count = db.query(PromoUsage).filter_by(
+            promocode_id=promocode.id,
+            is_successful=True
+        ).count()
+        if usage_count >= promocode.usage_limit:
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                detail="Достигнут лимит использования промокода"
+            )
+
+    if promocode.expiration_date and promocode.expiration_date < datetime.utcnow().date():
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="Промокод истек"
+        )
+
+    discount_value = promocode.discount_value
+    final_amount = tariff
+
+    if promocode.discount_type == "percentage":
+        final_amount = tariff * (1 - discount_value / 100)
+    elif promocode.discount_type == "fixed":
+        final_amount = tariff - discount_value
+
+    if final_amount < 0:
+        final_amount = 0
+
+    promo_usage = PromoUsage(user_id=user['id'], promocode_id=promocode.id)
+    db.add(promo_usage)
+    db.commit()
+    db.refresh(promo_usage)
+
+    return PromocodeResponse(
+        discount_type=promocode.discount_type,
+        discount_value=discount_value,
+        final_amount=final_amount
+    )
