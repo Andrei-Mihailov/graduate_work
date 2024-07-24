@@ -39,4 +39,3 @@ pg_config_data = PostgreSQLConfig(
     host=settings.db_host,
     port=settings.db_port,
 )
-

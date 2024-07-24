@@ -13,7 +13,9 @@ from models.user import User
 DATABASE_URL = "sqlite+aiosqlite:///./test.db"
 
 async_engine = create_async_engine(DATABASE_URL, echo=True)
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=async_engine, class_=AsyncSession)
+TestingSessionLocal = sessionmaker(
+    autocommit=False, autoflush=False, bind=async_engine, class_=AsyncSession
+)
 
 
 @pytest.fixture(scope="function")
@@ -50,7 +52,11 @@ async def override_get_db(db_session):
 
 @pytest.mark.asyncio
 async def test_apply_promocode(async_client, override_get_db, db_session):
-    user = User(username="testuser", email="testuser@example.com", hashed_password="hashed_password")
+    user = User(
+        username="testuser",
+        email="testuser@example.com",
+        hashed_password="hashed_password",
+    )
     db_session.add(user)
     await db_session.commit()
     await db_session.refresh(user)
@@ -61,13 +67,15 @@ async def test_apply_promocode(async_client, override_get_db, db_session):
         discount_value=10,
         is_active=True,
         usage_limit=10,
-        expiration_date=datetime.utcnow().date() + timedelta(days=1)
+        expiration_date=datetime.utcnow().date() + timedelta(days=1),
     )
     db_session.add(promocode)
     await db_session.commit()
     await db_session.refresh(promocode)
 
-    response = await async_client.post("/api/v1/apply_promocode/", json={"code": "TESTCODE", "user_id": user.id})
+    response = await async_client.post(
+        "/api/v1/apply_promocode/", json={"code": "TESTCODE", "user_id": user.id}
+    )
     assert response.status_code == 200
     data = response.json()
     assert data["discount_type"] == "percentage"
@@ -82,7 +90,7 @@ async def test_get_active_promocodes(async_client, override_get_db, db_session):
         discount_value=15,
         is_active=True,
         usage_limit=5,
-        expiration_date=datetime.utcnow().date() + timedelta(days=1)
+        expiration_date=datetime.utcnow().date() + timedelta(days=1),
     )
     db_session.add(promocode)
     await db_session.commit()
@@ -98,7 +106,11 @@ async def test_get_active_promocodes(async_client, override_get_db, db_session):
 
 @pytest.mark.asyncio
 async def test_apply_promocode_with_params(async_client, override_get_db, db_session):
-    user = User(username="testuser2", email="testuser2@example.com", hashed_password="hashed_password2")
+    user = User(
+        username="testuser2",
+        email="testuser2@example.com",
+        hashed_password="hashed_password2",
+    )
     db_session.add(user)
     await db_session.commit()
     await db_session.refresh(user)
@@ -109,7 +121,7 @@ async def test_apply_promocode_with_params(async_client, override_get_db, db_ses
         discount_value=20,
         is_active=True,
         usage_limit=10,
-        expiration_date=datetime.utcnow().date() + timedelta(days=1)
+        expiration_date=datetime.utcnow().date() + timedelta(days=1),
     )
     db_session.add(promocode)
     await db_session.commit()
@@ -117,7 +129,7 @@ async def test_apply_promocode_with_params(async_client, override_get_db, db_ses
 
     response = await async_client.get(
         "/api/v1/apply_promocode/",
-        params={"promocode_id": promocode.id, "tariff": 100, "user_id": user.id}
+        params={"promocode_id": promocode.id, "tariff": 100, "user_id": user.id},
     )
     assert response.status_code == 200
     data = response.json()

@@ -1,6 +1,7 @@
 from sqlalchemy import Column, String, Integer, Float
 from .base import Base
 
+
 class Tariff(Base):
     __tablename__ = "tariffs"
 
