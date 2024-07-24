@@ -29,9 +29,9 @@ class PromocodeResponse(BaseModel):
 )
 async def apply_promocode(
     apply: ApplyPromocodeRequest,
-    db: Session = Depends(get_db),
-    user: Annotated[dict, Depends(security_jwt)]
 ) -> PromocodeResponse:
+    db = Depends(get_db)
+    user = Annotated[dict, Depends(security_jwt)]
     promocode = db.query(Promocode).filter(
         Promocode.id == apply.promocode_id,
         Promocode.is_active == True
