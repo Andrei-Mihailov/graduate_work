@@ -1,4 +1,5 @@
-import json
+import sentry_sdk
+import textwrap
 
 from django.db import models
 from django.core.cache import cache
@@ -32,11 +33,20 @@ class PromoCode(models.Model):
         return self.code
 
     def save(self, *args, **kwargs):
+        if self.pk is None:  # Создание нового промокода
+            sentry_sdk.capture_message(f'Создан промокод: {self.code}')
+        else:  # Обновление существующего
+            if self.is_deleted:
+                sentry_sdk.capture_message(f'Удален промокод: {self.code}')
+            elif not self.is_active:
+                sentry_sdk.capture_message(f'Деактивирован промокод: {self.code}')
+        super(PromoCode, self).save(*args, **kwargs)
+
+        # Кеширование
         if self.is_deleted or not self.is_active:
             cache.delete(self.code)
         else:
             cache.set(self.code, 1)
-        return super(PromoCode, self).save(*args, **kwargs)
 
     class Meta:
         db_table = "promo_codes"
@@ -52,6 +62,15 @@ class Tariff(models.Model):
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        if self.pk is None:  # Создание нового тарифа
+            sentry_sdk.capture_message(f'Создан тариф: {self.name}')
+        else:  # Обновление существующего
+            if self.is_deleted:
+                sentry_sdk.capture_message(f'Удален тариф: {self.name}')
+
+        super(Tariff, self).save(*args, **kwargs)
 
     class Meta:
         db_table = "tariffs"
@@ -90,6 +109,22 @@ class AvailableForUsers(models.Model):
 
     def __str__(self):
         return self.promo_code.code
+
+    def save(self, *args, **kwargs):
+
+        if self.pk is None:  # Создание нового доступа
+            message = "Создан доступ"
+        else:  # Обновление существующего
+            message = "Обновлен доступ"
+        super(AvailableForUsers, self).save(*args, **kwargs)
+        sentry_sdk.capture_message(
+            textwrap.dedent(
+                f'''{message}:
+                    промокод - {self.promo_code},
+                    пользователи - {", ".join([str(user) for user in self.user.filter(is_active=True)])}
+                    группы - { ", ".join([str(group) for group in self.group.all()])}
+                ''')
+        )
 
     class Meta:
         db_table = "availables"

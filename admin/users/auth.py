@@ -53,7 +53,7 @@ class CustomBackend(BaseBackend):
         except Exception as e:
             sentry_sdk.capture_exception(e)
             return None
-
+        sentry_sdk.capture_message(f'Успшная авторизация админа: {user.username}')
         return user
 
     def get_user(self, user_id):

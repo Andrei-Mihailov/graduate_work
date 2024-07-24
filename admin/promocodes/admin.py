@@ -1,6 +1,7 @@
 import random
 import string
 import datetime
+import sentry_sdk
 
 from django.contrib import admin, messages
 from django.contrib.auth.models import User, Group
@@ -114,7 +115,6 @@ class PromoCode(admin.ModelAdmin):
 
     def get_purchase(self, obj):
         return models.Purchase.objects.filter(promo_code=obj).count()
-
     get_purchase.short_description = "Использован, раз"
 
     @admin.action(description="Удалить")
@@ -126,7 +126,8 @@ class PromoCode(admin.ModelAdmin):
             self.message_user(
                 request, f"{len(queryset)} промокод(ов) удалено", messages.SUCCESS
             )
-        except Exception:
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
             self.message_user(
                 request, "Что-то пошло не так, попробуйте снова.", messages.ERROR
             )
@@ -142,7 +143,8 @@ class PromoCode(admin.ModelAdmin):
                 f"{len(queryset)} промокод(ов) деактивировано",
                 messages.SUCCESS,
             )
-        except Exception:
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
             self.message_user(
                 request, "Что-то пошло не так, попробуйте снова.", messages.ERROR
             )
@@ -156,16 +158,17 @@ class Tariff(admin.ModelAdmin):
     search_fields = ("name", "description")
     exclude = ("is_deleted",)
 
-    @ admin.action(description="Удалить")
+    @admin.action(description="Удалить")
     def delete_selected(self, request, queryset):
         try:
             for obj in queryset:
                 obj.is_deleted = True
                 obj.save()
             self.message_user(
-                request, f"{len(queryset)} промокод(ов) удалено", messages.SUCCESS
+                request, f"{len(queryset)} тариф(ов) удалено", messages.SUCCESS
             )
-        except Exception:
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
             self.message_user(
                 request, "Что-то пошло не так, попробуйте снова.", messages.ERROR
             )
@@ -191,12 +194,10 @@ class AvailableForUsers(admin.ModelAdmin):
 
     def get_users(self, obj):
         return ", ".join([str(user) for user in obj.user.filter(is_active=True)])
-
     get_users.short_description = "Пользователи"
 
     def get_groups(self, obj):
         return ", ".join([str(group) for group in obj.group.all()])
-
     get_groups.short_description = "Группы пользователей"
 
 
