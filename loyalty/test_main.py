@@ -1,14 +1,13 @@
 import pytest
-
 from httpx import AsyncClient
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
+from datetime import datetime, timedelta
 from main import app
-from db.database import get_db
-from models.base import Base
 from models.promocode import Promocode
 from models.user import User
-
+from db.database import get_db
+from models.base import Base
 
 DATABASE_URL = "sqlite+aiosqlite:///./test.db"
 
@@ -128,7 +127,7 @@ async def test_apply_promocode_with_params(async_client, override_get_db, db_ses
     await db_session.refresh(promocode)
 
     response = await async_client.get(
-        "/api/v1/apply_promocode/",
+        "/api/v1/apply_promocode_with_params/",
         params={"promocode_id": promocode.id, "tariff": 100, "user_id": user.id},
     )
     assert response.status_code == 200

@@ -4,10 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from datetime import datetime
-
+from utils.auth import security_jwt
 from models import Promocode, PromoUsage
 from database import get_db
-from utils.auth import security_jwt
 
 router = APIRouter()
 
