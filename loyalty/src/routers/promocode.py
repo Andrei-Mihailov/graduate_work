@@ -144,6 +144,7 @@ async def use_promocode(
     promo_usage = PromoUsage(
         user_id=user["id"], promocode_id=promocode.id, is_successful=True
     )
+    db = get_db()
     db.add(promo_usage)
     db.commit()
     db.refresh(promo_usage)
