@@ -9,6 +9,7 @@ from .utils import decode_jwt
 from db.postgres_db import get_session
 from db.redis_db import RedisCache, get_redis
 
+
 class AuthService(BaseService):
     def __init__(self, cache: RedisCache, storage: AsyncSession):
         super().__init__(cache, storage)
@@ -43,6 +44,7 @@ class AuthService(BaseService):
         except Exception as e:
             sentry_sdk.capture_exception(e)
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
+
 
 @lru_cache()
 def get_auth_service(

@@ -9,6 +9,26 @@ from utils.auth import security_jwt
 from models.promocode import PromoCode, AvailableForUsers
 from models.purchase import Tariff, Purchase
 from db.database import get_db
+from services.purchase_service import PurchaseService, get_purchase_service
+from services.promo_code_service import PromoCodeService, get_promo_code_service
+from services.access_service import AccessService, get_access_service
+
+router = APIRouter()
+
+from http import HTTPStatus
+from typing import Annotated, List
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from pydantic import BaseModel
+from datetime import datetime
+
+from utils.auth import security_jwt
+from models.promocode import PromoCode, AvailableForUsers
+from models.purchase import Tariff, Purchase
+from db.database import get_db
+from services.purchase_service import PurchaseService, get_purchase_service
+from services.promo_code_service import PromoCodeService, get_promo_code_service
+from services.access_service import AccessService, get_access_service
 
 router = APIRouter()
 
@@ -24,62 +44,6 @@ class PromocodeResponse(BaseModel):
     final_amount: float
 
 
-def get_valid_promocode(promocode_id: int, user_id: int, db: Session) -> PromoCode:
-    promocode = (
-        db.query(PromoCode)
-        .filter(PromoCode.id == promocode_id, PromoCode.is_active == True)
-        .first()
-    )
-
-    if not promocode:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Промокод не найден или истек"
-        )
-
-    user_promo_access = (
-        db.query(AvailableForUsers)
-        .filter(
-            AvailableForUsers.promo_code_id == promocode_id,
-            (AvailableForUsers.user.contains(user_id) | AvailableForUsers.group.contains(user_id))
-        )
-        .first()
-    )
-
-    if not user_promo_access:
-        raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN, detail="У вас нет доступа к этому промокоду"
-        )
-
-    if (
-        promocode.expiration_date
-        and promocode.expiration_date < datetime.utcnow().date()
-    ):
-        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Промокод истек")
-
-    return promocode
-
-
-def get_tariff(tariff_id: int, db: Session) -> Tariff:
-    tariff = db.query(Tariff).filter(Tariff.id == tariff_id).first()
-    if not tariff:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Тариф не найден")
-    return tariff
-
-
-def calculate_final_amount(original_amount: float, promocode: PromoCode) -> float:
-    discount_value = promocode.discount
-    if promocode.discount_type == PromoCode.DiscountType.PERCENTAGE:
-        final_amount = original_amount * (1 - discount_value / 100)
-    elif promocode.discount_type == PromoCode.DiscountType.FIXED:
-        final_amount = original_amount - discount_value
-    elif promocode.discount_type == PromoCode.DiscountType.TRIAL:
-        final_amount = 0
-    else:
-        raise ValueError(f"Unsupported discount type: {promocode.discount_type}")
-
-    return max(final_amount, 0)
-
-
 @router.post("/apply_promocode/",
              response_model=PromocodeResponse,
              summary="Применить промокод",
@@ -89,16 +53,19 @@ def calculate_final_amount(original_amount: float, promocode: PromoCode) -> floa
 async def apply_promocode(
     user: Annotated[dict, Depends(security_jwt)],
     apply: ApplyPromocodeRequest,
-    db: Session = Depends(get_db),
+    promo_code_service: PromoCodeService = Depends(get_promo_code_service),
+    purchase_service: PurchaseService = Depends(get_purchase_service)
 ) -> PromocodeResponse:
     # Проверяем тариф
-    tariff = get_tariff(apply.tariff_id, db)
+    tariff: Tariff = await purchase_service.get_instance_by_id(apply.tariff_id)
+
+    if not tariff:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Тариф не найден")
 
     # Проверяем промокод
-    promocode = get_valid_promocode(apply.promocode_id, user["id"], db)
+    promocode = await promo_code_service.get_valid_promocode(apply.promocode_id, user["id"])
 
-    # Используем стоимость тарифа
-    final_amount = calculate_final_amount(tariff.price, promocode)
+    final_amount = await purchase_service.calculate_final_amount(tariff.price, promocode)
 
     return PromocodeResponse(
         discount_type=promocode.discount_type,
@@ -122,31 +89,9 @@ class ActivePromocodeResponse(BaseModel):
             tags=["Промокоды"])
 async def get_active_promocodes(
     user: Annotated[dict, Depends(security_jwt)],
-    db: Session = Depends(get_db),
+    promo_code_service: PromoCodeService = Depends(get_promo_code_service),
 ) -> List[ActivePromocodeResponse]:
-    active_promocodes = (
-        db.query(PromoCode)
-        .filter(
-            PromoCode.is_active == True,
-            PromoCode.expiration_date >= datetime.utcnow().date(),
-        )
-        .all()
-    )
-
-    # Логика фильтрации промокодов по доступности пользователю
-    user_promocodes = [
-        {
-            "code": promo.code,
-            "discount_type": promo.discount_type,
-            "discount_value": promo.discount,
-            "expiration_date": promo.expiration_date,
-        }
-        for promo in active_promocodes if db.query(AvailableForUsers).filter((AvailableForUsers.user.contains(user["id"]) |
-                                                                              AvailableForUsers.group.contains(user["group_id"])),
-                                                                             AvailableForUsers.promo_code_id == promo.id).count() > 0
-    ]
-
-    return user_promocodes
+    return await promo_code_service.get_active_promocodes_for_user(user["id"])
 
 
 @router.post("/use_promocode/",
@@ -158,33 +103,16 @@ async def get_active_promocodes(
 async def use_promocode(
     user: Annotated[dict, Depends(security_jwt)],
     apply: ApplyPromocodeRequest,
-    db: Session = Depends(get_db),
+    purchase_service: PurchaseService = Depends(get_purchase_service),
+    promo_code_service: PromoCodeService = Depends(get_promo_code_service)
 ) -> PromocodeResponse:
-    # Проверяем тариф
-    tariff = get_tariff(apply.tariff_id, db)
-
-    # Проверяем промокод
-    promocode = get_valid_promocode(apply.promocode_id, user["id"], db)
-
-    # Используем стоимость тарифа
-    final_amount = calculate_final_amount(tariff.price, promocode)
-
-    # Записываем данные в таблицу Purchase
-    purchase = Purchase(
-        user_id=user["id"],
-        tariff_id=tariff.id,
-        promocode_id=promocode.id,
-        amount=final_amount,
-        created_at=datetime.utcnow()
-    )
-    db.add(purchase)
-    db.commit()
-    db.refresh(purchase)
+    # Используем сервис для применения промокода к покупке
+    result = await purchase_service.use_promocode(user["id"], apply.promocode_id, apply.tariff_id)
 
     return PromocodeResponse(
-        discount_type=promocode.discount_type,
-        discount_value=promocode.discount,
-        final_amount=final_amount,
+        discount_type=result["discount_type"],
+        discount_value=result["discount_value"],
+        final_amount=result["final_amount"],
     )
 
 
@@ -202,28 +130,16 @@ class CancelPromocodeRequest(BaseModel):
 async def cancel_use_promocode(
     user: Annotated[dict, Depends(security_jwt)],
     cancel: CancelPromocodeRequest,
-    db: Session = Depends(get_db),
+    purchase_service: PurchaseService = Depends(get_purchase_service),
 ) -> PromocodeResponse:
-    # Найдем запись о покупке
-    purchase = db.query(Purchase).filter(Purchase.id == cancel.purchase_id, Purchase.user_id == user["id"]).first()
-
-    if not purchase:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Запись о покупке не найдена"
-        )
-
-    # Получаем тариф, чтобы вернуть к стандартной стоимости
-    tariff = get_tariff(purchase.tariff_id, db)
+    # Найдем запись о покупке через сервис
+    purchase = await purchase_service.get_purchase(cancel.purchase_id, user["id"])
 
     # Обновляем стоимость покупки на стандартную
-    purchase.total_price = tariff.price
-    purchase.promo_code_id = None
-
-    db.commit()
+    final_amount = await purchase_service.cancel_purchase(purchase.id)
 
     return PromocodeResponse(
         discount_type=None,  # Поскольку промокод был отменен
         discount_value=0,    # Скидка 0
-        final_amount=tariff.price,  # Итоговая стоимость равна стандартной цене тарифа
+        final_amount=final_amount,  # Итоговая стоимость равна стандартной цене тарифа
     )

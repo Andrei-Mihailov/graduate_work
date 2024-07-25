@@ -44,9 +44,9 @@ class PromoCode(models.Model):
 
         # Кеширование
         if self.is_deleted or not self.is_active:
-            cache.delete(self.code)
+            cache.delete(f"promocode:{self.id}")
         else:
-            cache.set(self.code, self.id)
+            cache.set(f"promocode:{self.id}", self.code, self.expiration_date)
 
     class Meta:
         db_table = "promo_codes"
