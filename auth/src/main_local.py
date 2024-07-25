@@ -19,6 +19,7 @@ from db import redis_db
 from api.v1.service import check_jwt
 from api.v1 import users, roles, permissions
 from services.broker_service import broker_service
+from models.broker import EventType
 
 
 @on_exception(expo, (AMQPConnectionError, ConnectionError), max_tries=10)
@@ -27,7 +28,10 @@ async def lifespan(app: FastAPI):
     redis_db.redis = Redis(host=settings.redis_host, port=settings.redis_port)
     broker_service.connection = await connect_robust(settings.rabbit_connection)
     broker_service.channel = await broker_service.connection.channel()
-    broker_service.exchange = await broker_service.channel.declare_exchange(settings.rabbit_exchange)
+    broker_service.exchange = await broker_service.channel.declare_exchange(settings.rabbit_exchange, durable=True)
+    for queue_name in EventType:
+        queue = await broker_service.channel.declare_queue(name=f"users.{queue_name.value}", durable=True)
+        await queue.bind(broker_service.exchange)
     yield
     await redis_db.redis.close()
     await broker_service.channel.close()

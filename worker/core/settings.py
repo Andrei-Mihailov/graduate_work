@@ -20,9 +20,7 @@ class Settings(BaseSettings):
 
     @property
     def db_connection(self):
-        return f"postgresql+asyncpg://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"
+        return f"postgresql://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"
 
 settings = Settings()
 
-NEW_USER_QUEUE: str = "users.registration"
-DELETE_USER_QUEUE: str = "users.delete"

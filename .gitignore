@@ -1,3 +1,4 @@
+.env
 .DS_Store
 .idea
 *.pyc
@@ -5,3 +6,4 @@ migrations/
 .vscode/
 rabbitmq
 .venv
+__pycache__

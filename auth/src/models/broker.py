@@ -15,8 +15,8 @@ class BaseModel(PydanticBaseModel):
 
 
 class EventType(str, Enum):
-    registration = "registration"
-    delete = "delete"
+    registration = "users.registration"
+    delete = "users.delete"
 
 
 class UserResponce(BaseModel):

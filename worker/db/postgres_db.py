@@ -27,5 +27,4 @@ def check_user(uuid: str, email: str, is_active: bool):
         else:
             new_user.is_active = is_active
             new_user.email = email
-
         db.commit() 

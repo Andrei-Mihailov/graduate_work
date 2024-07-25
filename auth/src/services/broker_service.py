@@ -22,12 +22,10 @@ class BrokerService:
             body=orjson.dumps(data.model_dump()),
             delivery_mode=settings.rabbit_delivery_mode,
         )
-        queue = await self.channel.declare_queue(name=queue_name, durable=True)
-        await queue.bind(self.exchange)
         await self.exchange.publish(routing_key=queue_name, message=message)
 
     async def put_one_message_to_queue(self, event: str, user: UserResponce):
-        await self.send_message(queue_name=f"users.{event}", data=user)
+        await self.send_message(queue_name=event, data=user)
 
 
 broker_service: BrokerService = BrokerService()
