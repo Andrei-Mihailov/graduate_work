@@ -55,7 +55,6 @@ jobs:
         source venv/bin/activate
         cd admin
         source ../venv/bin/activate  # Активируем виртуальное окружение снова перед запуском тестов
-        python manage.py migrate --fake-initial
         python manage.py test
         cd ../..
 
