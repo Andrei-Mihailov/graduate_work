@@ -10,34 +10,19 @@ from database import get_db
 
 router = APIRouter()
 
-
 class ApplyPromocodeRequest(BaseModel):
     promocode_id: int
     tariff: float
-
 
 class PromocodeResponse(BaseModel):
     discount_type: str
     discount_value: float
     final_amount: float
 
-
-@router.post(
-    "/apply_promocode/",
-    response_model=PromocodeResponse,
-    summary="Применить промокод",
-    description="Применить промокод к пользователю и рассчитать итоговую стоимость",
-    response_description="Тип и значение скидки и итоговая стоимость",
-    tags=["Промокоды"],
-)
-async def apply_promocode(
-    apply: ApplyPromocodeRequest,
-) -> PromocodeResponse:
-    db = Depends(get_db)
-    user = Annotated[dict, Depends(security_jwt)]
+def get_valid_promocode(promocode_id: int, db: Session) -> Promocode:
     promocode = (
         db.query(Promocode)
-        .filter(Promocode.id == apply.promocode_id, Promocode.is_active == True)
+        .filter(Promocode.id == promocode_id, Promocode.is_active == True)
         .first()
     )
 
@@ -64,16 +49,32 @@ async def apply_promocode(
     ):
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Промокод истек")
 
+    return promocode
+
+def calculate_final_amount(tariff: float, promocode: Promocode) -> float:
     discount_value = promocode.discount_value
-    final_amount = apply.tariff
-
     if promocode.discount_type == "percentage":
-        final_amount = apply.tariff * (1 - discount_value / 100)
+        final_amount = tariff * (1 - discount_value / 100)
     elif promocode.discount_type == "fixed":
-        final_amount = apply.tariff - discount_value
+        final_amount = tariff - discount_value
 
-    if final_amount < 0:
-        final_amount = 0
+    return max(final_amount, 0)
+
+@router.post(
+    "/apply_promocode/",
+    response_model=PromocodeResponse,
+    summary="Применить промокод",
+    description="Применить промокод к пользователю и рассчитать итоговую стоимость",
+    response_description="Тип и значение скидки и итоговая стоимость",
+    tags=["Промокоды"],
+)
+async def apply_promocode(
+    apply: ApplyPromocodeRequest,
+) -> PromocodeResponse:
+    db = Depends(get_db)
+    user = Annotated[dict, Depends(security_jwt)]
+    promocode = get_valid_promocode(apply.promocode_id, db)
+    final_amount = calculate_final_amount(apply.tariff, promocode)
 
     promo_usage = PromoUsage(
         user_id=user["id"], promocode_id=promocode.id, is_successful=True
@@ -84,10 +85,9 @@ async def apply_promocode(
 
     return PromocodeResponse(
         discount_type=promocode.discount_type,
-        discount_value=discount_value,
+        discount_value=promocode.discount_value,
         final_amount=final_amount,
     )
-
 
 class ActivePromocodeResponse(BaseModel):
     id: int
@@ -95,7 +95,6 @@ class ActivePromocodeResponse(BaseModel):
     discount_type: str
     discount_value: float
     expiration_date: datetime
-
 
 @router.get(
     "/get_active_promocodes/",
@@ -119,7 +118,6 @@ async def get_active_promocodes(
     )
     return active_promocodes
 
-
 @router.get(
     "/use_promocode/",
     response_model=PromocodeResponse,
@@ -132,30 +130,8 @@ async def use_promocode(
     promocode_id: int = Query(..., description="ID промокода"),
     tariff: float = Query(..., description="Тариф, связанный с промокодом"),
 ) -> PromocodeResponse:
-    db = Depends(get_db)
-    user = Annotated[dict, Depends(security_jwt)]
-    promocode = (
-        db.query(Promocode)
-        .filter(Promocode.id == promocode_id, Promocode.is_active == True)
-        .first()
-    )
-
-    if not promocode:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Промокод не найден"
-        )
-
-    if (
-        promocode.expiration_date
-        and promocode.expiration_date < datetime.utcnow().date()
-    ):
-        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Промокод истек")
-
-    discount_value = promocode.discount_value
-    final_amount = tariff - discount_value
-
-    if final_amount < 0:
-        final_amount = 0
+    promocode = get_valid_promocode(promocode_id, db)
+    final_amount = calculate_final_amount(tariff, promocode)
 
     promo_usage = PromoUsage(
         user_id=user["id"], promocode_id=promocode.id, is_successful=True
@@ -166,6 +142,38 @@ async def use_promocode(
 
     return PromocodeResponse(
         discount_type=promocode.discount_type,
-        discount_value=discount_value,
+        discount_value=promocode.discount_value,
         final_amount=final_amount,
     )
+
+class CancelPromocodeRequest(BaseModel):
+    promocode_id: int
+
+@router.post(
+    "/cancel_use_promocode/",
+    summary="Отменить использование промокода",
+    description="Отменить использование промокода",
+    tags=["Промокоды"],
+)
+async def cancel_use_promocode(
+    cancel: CancelPromocodeRequest,
+    db: Session = Depends(get_db),
+    user: Annotated[dict, Depends(security_jwt)]
+):
+    promo_usage = (
+        db.query(PromoUsage)
+        .filter_by(promocode_id=cancel.promocode_id, user_id=user["id"], is_successful=True)
+        .first()
+    )
+
+    if not promo_usage:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="Использование промокода не найдено",
+        )
+
+    promo_usage.is_successful = False
+    db.commit()
+    db.refresh(promo_usage)
+
+    return {"detail": "Использование промокода отменено"}
