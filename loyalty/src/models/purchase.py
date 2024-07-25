@@ -1,7 +1,17 @@
-from sqlalchemy import Column, Integer, Float, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, Float, String, Boolean, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from .base import Base
+
+
+class Tariff(Base):
+    __tablename__ = "tariffs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True)
+    price = Column(Float)
+    description = Column(String, nullable=True)
+    is_deleted = Column(Boolean, default=False)
 
 
 class Purchase(Base):
@@ -16,4 +26,4 @@ class Purchase(Base):
 
     user = relationship("User", back_populates="purchases")
     tariff = relationship("Tariff")
-    promo_code = relationship("Promocode")
+    promo_code = relationship("PromoCode")

@@ -89,20 +89,3 @@ class Group(GroupBase):
 
     class Config:
         orm_mode = True
-
-
-class UsageLogBase(BaseModel):
-    user_id: int
-    promo_code_id: int
-
-
-class UsageLogCreate(UsageLogBase):
-    pass
-
-
-class UsageLog(UsageLogBase):
-    id: int
-    usage_date: datetime
-
-    class Config:
-        orm_mode = True
