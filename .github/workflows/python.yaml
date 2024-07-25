@@ -63,7 +63,7 @@ jobs:
         source venv/bin/activate
         cd admin
         source ../venv/bin/activate
-        python manage.py makemigrations
+        python manage.py makemigrations promocodes users
             
     - name: Drop existing test database
       run: |
