@@ -4,8 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from datetime import datetime
-from utils.auth import security_jwt, get_current_user
-from models import Promocode, PromoUsage
+from utils.auth import security_jwt
+from models.promocode import Promocode
+from models.user import PromoUsage
 from database import get_db
 
 router = APIRouter()
@@ -61,8 +62,12 @@ def calculate_final_amount(tariff: float, promocode: Promocode) -> float:
         final_amount = tariff * (1 - discount_value / 100)
     elif promocode.discount_type == "fixed":
         final_amount = tariff - discount_value
+    elif promocode.discount_type == "trial":
+        final_amount = 0
+    else:
+        raise ValueError(f"Unsupported discount type: {promocode.discount_type}")
 
-    return max(final_amount, 0)
+    return max(int(final_amount), 0)
 
 
 @router.post(
@@ -74,15 +79,18 @@ def calculate_final_amount(tariff: float, promocode: Promocode) -> float:
     tags=["Промокоды"],
 )
 async def apply_promocode(
+    user: Annotated[dict, Depends(security_jwt)],
     apply: ApplyPromocodeRequest,
+    db: Session = Depends(get_db),
 ) -> PromocodeResponse:
-    db = Depends(get_db)
-    user = Annotated[dict, Depends(security_jwt)]
     promocode = get_valid_promocode(apply.promocode_id, db)
     final_amount = calculate_final_amount(apply.tariff, promocode)
 
+    # Создаем запись о применении промокода
     promo_usage = PromoUsage(
-        user_id=user["id"], promocode_id=promocode.id, is_successful=True
+        user_id=user["id"],  # Используем ID из JWT
+        promocode_id=promocode.id,
+        is_successful=True,
     )
     db.add(promo_usage)
     db.commit()
@@ -93,6 +101,7 @@ async def apply_promocode(
         discount_value=promocode.discount_value,
         final_amount=final_amount,
     )
+
 
 class ActivePromocodeResponse(BaseModel):
     id: int
@@ -106,14 +115,13 @@ class ActivePromocodeResponse(BaseModel):
     "/get_active_promocodes/",
     response_model=list[ActivePromocodeResponse],
     summary="Получить активные промокоды",
-    description="Получить все активные промокоды",
+    description="Получить все активные промокоды, доступные пользователю",
     response_description="Список активных промокодов",
     tags=["Промокоды"],
 )
 async def get_active_promocodes(
     db: Session = Depends(get_db),
 ) -> list[ActivePromocodeResponse]:
-    user = Annotated[dict, Depends(security_jwt)]
     active_promocodes = (
         db.query(Promocode)
         .filter(
@@ -134,16 +142,18 @@ async def get_active_promocodes(
     tags=["Промокоды"],
 )
 async def use_promocode(
+    user: Annotated[dict, Depends(security_jwt)],
     promocode_id: int = Query(..., description="ID промокода"),
     tariff: float = Query(..., description="Тариф, связанный с промокодом"),
     db: Session = Depends(get_db),
 ) -> PromocodeResponse:
-    user = Annotated[dict, Depends(security_jwt)]
     promocode = get_valid_promocode(promocode_id, db)
     final_amount = calculate_final_amount(tariff, promocode)
 
     promo_usage = PromoUsage(
-        user_id=user["id"], promocode_id=promocode.id, is_successful=True
+        user_id=user["id"],  # Используем ID из JWT
+        promocode_id=promocode.id,
+        is_successful=True,
     )
     db.add(promo_usage)
     db.commit()
@@ -167,11 +177,10 @@ class CancelPromocodeRequest(BaseModel):
     tags=["Промокоды"],
 )
 async def cancel_use_promocode(
+    user: Annotated[dict, Depends(security_jwt)],
     cancel: CancelPromocodeRequest,
     db: Session = Depends(get_db),
-
 ):
-    user = Annotated[dict, Depends(security_jwt)]
     promo_usage = (
         db.query(PromoUsage)
         .filter_by(
