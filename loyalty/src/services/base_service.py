@@ -50,6 +50,17 @@ class BaseService(AbstractBaseService):
             return None
 
     @backoff.on_exception(backoff.expo, conn_err_pg, max_tries=5)
+    async def get_instance_by_code(self, code: str):
+        stmt = select(self.model).filter(self.model.code == code)
+        try:
+            result = await self.storage.execute(stmt)
+            instance = result.scalars().first()
+            return instance
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            return None
+
+    @backoff.on_exception(backoff.expo, conn_err_pg, max_tries=5)
     async def del_instance_by_id(self, id: str) -> bool:
         try:
             instance = await self.get_instance_by_id(id)

@@ -4,8 +4,9 @@ from datetime import datetime
 from http import HTTPStatus
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Depends, HTTPException
-from models.purchase import Tariff, Purchase
 
+from models.purchase import Tariff, Purchase
+from models.promocode import PromoCode
 from .base_service import BaseService
 from .promo_code_service import PromoCodeService
 from db.postgres_db import get_session
@@ -16,16 +17,16 @@ class PurchaseService(BaseService):
     def __init__(self, cache: RedisCache, storage: AsyncSession):
         super().__init__(cache, storage)
 
-    async def calculate_final_amount(self, original_amount: float, discount_type: str, discount_value: float) -> float:
-        """Вычисляет итоговую сумму с учетом промокода."""
-        if discount_type == "percentage":
-            final_amount = original_amount * (100 - discount_value) / 100
-        elif discount_type == "fixed":
+    def calculate_final_amount(original_amount: float, promocode: PromoCode) -> float:
+        discount_value = promocode.discount
+        if promocode.discount_type == "percentage":
+            final_amount = original_amount * (100 - discount_value / 100)
+        elif promocode.discount_type == "fixed":
             final_amount = original_amount - discount_value
-        elif discount_type == "trial":
+        elif promocode.discount_type == "trial":
             final_amount = 0
         else:
-            raise ValueError(f"Unsupported discount type: {discount_type}")
+            raise ValueError(f"Unsupported discount type: {promocode.discount_type}")
 
         return max(final_amount, 0)
 
@@ -45,11 +46,11 @@ class PurchaseService(BaseService):
 
         await self.del_instance_by_id(purchase_id)
 
-    async def use_promocode(self, user_id: int, promocode_id: int, tariff_id: int) -> dict:
+    async def use_promocode(self, user_id: int, promocode_str: str, tariff_id: int) -> dict:
         """Использует промокод для покупки и возвращает данные о результате."""
         try:
             promocode_service = PromoCodeService(self.cache, self.storage)
-            promocode = await promocode_service.get_valid_promocode(promocode_id, user_id)
+            promocode: PromoCode = await promocode_service.get_valid_promocode(promocode_str, user_id)
 
             tariff: Tariff = await self.get_instance_by_id(tariff_id)
             if not tariff:

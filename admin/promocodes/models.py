@@ -46,7 +46,7 @@ class PromoCode(models.Model):
         if self.is_deleted or not self.is_active:
             cache.delete(f"promocode:{self.id}")
         else:
-            cache.set(f"promocode:{self.id}", self.code, self.expiration_date)
+            cache.set(f"promocode:{self.code}", self.id, self.expiration_date)
 
     class Meta:
         db_table = "promo_codes"

@@ -15,7 +15,7 @@ router = APIRouter()
 
 
 class ApplyPromocodeRequest(BaseModel):
-    promocode_id: int
+    promocode: str
     tariff_id: int
 
 
@@ -43,7 +43,7 @@ async def apply_promocode(
         if not tariff:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Тариф не найден")
 
-        promocode = await promo_code_service.get_valid_promocode(apply.promocode_id, user["id"])
+        promocode = await promo_code_service.get_valid_promocode(apply.promocode, user["id"])
 
         final_amount = await purchase_service.calculate_final_amount(tariff.price, promocode)
 
@@ -90,7 +90,7 @@ async def use_promocode(
     promo_code_service: PromoCodeService = Depends(get_promo_code_service)
 ) -> PromocodeResponse:
     try:
-        result = await purchase_service.use_promocode(user["id"], apply.promocode_id, apply.tariff_id)
+        result = await purchase_service.use_promocode(user["id"], apply.promocode, apply.tariff_id)
 
         return PromocodeResponse(
             discount_type=result["discount_type"],
@@ -103,7 +103,7 @@ async def use_promocode(
 
 
 class CancelPromocodeRequest(BaseModel):
-    promocode_id: int
+    promocode: int
     purchase_id: int
 
 

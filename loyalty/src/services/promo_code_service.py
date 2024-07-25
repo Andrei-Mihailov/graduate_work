@@ -2,7 +2,6 @@ import sentry_sdk
 
 from typing import List
 from datetime import datetime
-from models.promocode import PromoCode
 from http import HTTPStatus
 from fastapi import Depends, HTTPException
 from sqlalchemy.future import select
@@ -22,14 +21,14 @@ class PromoCodeService(BaseService):
         self.model = PromoCode
         self.access_service = access_service
 
-    async def get_valid_promocode(self, promocode_id: int, user_id: int) -> PromoCode:
+    async def get_valid_promocode(self, promocode_str: str, user_id: int) -> PromoCode:
         """Проверяет валидность промокода."""
-        promocode_cache_key = f"promocode:{promocode_id}"
+        promocode_cache_key = f"promocode:{promocode_str}"
         cached_promocode = await self.get_cache(promocode_cache_key)
 
         if not cached_promocode:
             try:
-                promocode: PromoCode = await self.get_instance_by_id(promocode_id)
+                promocode: PromoCode = await self.get_instance_by_code(promocode_str)
                 if not promocode or not promocode.is_active:
                     raise HTTPException(
                         status_code=HTTPStatus.NOT_FOUND, detail="Промокод не найден или истек"
@@ -45,7 +44,7 @@ class PromoCodeService(BaseService):
                     raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Пользователь не найден")
 
                 # Проверяем доступность промокода для пользователя через AccessService
-                user_has_access = await self.access_service.is_promocode_available_for_user(promocode_id, user_id, user.group_id)
+                user_has_access = await self.access_service.is_promocode_available_for_user(promocode.id, user_id, user.group_id)
 
                 if not user_has_access:
                     raise HTTPException(
