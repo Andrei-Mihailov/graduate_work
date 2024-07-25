@@ -32,7 +32,7 @@ async def lifespan(app: FastAPI):
     broker_service.channel = await broker_service.connection.channel()
     broker_service.exchange = await broker_service.channel.declare_exchange(settings.rabbit_exchange, durable=True)
     for queue_name in EventType:
-        queue = await broker_service.channel.declare_queue(name=f"users.{queue_name.value}", durable=True)
+        queue = await broker_service.channel.declare_queue(name=queue_name.value, durable=True)
         await queue.bind(broker_service.exchange)
     yield
     await redis_db.redis.close()

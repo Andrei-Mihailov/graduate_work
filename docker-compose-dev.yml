@@ -17,7 +17,7 @@ services:
     container_name: rabbitmq   
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBIT_USER}
-      RABBITMQ_DEFAULT_PASS: ${RABBIT_pASSWORD}
+      RABBITMQ_DEFAULT_PASS: ${RABBIT_PASSWORD}
     volumes:
       - ./rabbitmq:/var/lib/rabbitmq
     ports:
