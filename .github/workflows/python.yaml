@@ -49,12 +49,26 @@ jobs:
       run: |
         pwd
         ls -la
-
+        
+    # - name: Set environment variables
+    #   run: |
+        
+        
+    # - name: Run Django migrations
+    #   run: |
+        
+        
     - name: Run Django tests
       run: |
         source venv/bin/activate
         cd admin
         source ../venv/bin/activate  # Активируем виртуальное окружение снова перед запуском тестов
+        echo "DB_NAME=promocodes" >> $GITHUB_ENV
+        echo "DB_USER=app" >> $GITHUB_ENV
+        echo "DB_PASSWORD=123qwe" >> $GITHUB_ENV
+        echo "DB_HOST=45.91.8.40" >> $GITHUB_ENV
+        echo "DB_PORT=5431" >> $GITHUB_ENV
+        python manage.py migrate
         python manage.py test
         cd ../..
 
