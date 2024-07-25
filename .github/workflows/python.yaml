@@ -66,13 +66,8 @@ jobs:
         source ../venv/bin/activate
         python manage.py makemigrations promocodes users
             
-    - name: Drop existing test database
-      run: |
-        PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -U $DB_USER -p $DB_PORT -d promocodes -c "DROP DATABASE IF EXISTS ${DB_NAME};"
-            
-    - name: Change environment variables
-      run: |
-        echo "DB_NAME=promocodes" >> $GITHUB_ENV
+   
+
         
     - name: Run Django tests
       run: |
