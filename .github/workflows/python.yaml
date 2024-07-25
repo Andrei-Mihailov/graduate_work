@@ -71,6 +71,9 @@ jobs:
     
     - name: Run Django tests
       run: |
+        source venv/bin/activate
+        cd admin
+        source ../venv/bin/activate
         python manage.py test --verbosity=2
         cd ../..
 
