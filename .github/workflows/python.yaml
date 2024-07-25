@@ -78,7 +78,7 @@ jobs:
         source venv/bin/activate
         cd admin
         source ../venv/bin/activate
-        python manage.py test --verbosity=2
+        python manage.py test 
         cd ../..
 
     - name: Run pytest
