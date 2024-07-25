@@ -100,18 +100,6 @@ async def apply_promocode(
     # Используем стоимость тарифа
     final_amount = calculate_final_amount(tariff.price, promocode)
 
-    # Записываем данные в таблицу Purchase
-    purchase = Purchase(
-        user_id=user["id"],  # ID пользователя из JWT
-        tariff_id=tariff.id,
-        promocode_id=promocode.id,
-        amount=final_amount,
-        created_at=datetime.utcnow()
-    )
-    db.add(purchase)
-    db.commit()
-    db.refresh(purchase)
-
     return PromocodeResponse(
         discount_type=promocode.discount_type,
         discount_value=promocode.discount,
@@ -163,8 +151,8 @@ async def get_active_promocodes(
 
 @router.post("/use_promocode/",
              response_model=PromocodeResponse,
-             summary="Использовать промокод",
-             description="Использовать промокод и получить итоговую стоимость",
+             summary="Покупка с промокодом",
+             description="Использовать промокод и сделать запись о покупке",
              response_description="Тип и значение скидки и итоговая стоимость",
              tags=["Промокоды"])
 async def use_promocode(
@@ -206,14 +194,16 @@ class CancelPromocodeRequest(BaseModel):
 
 
 @router.post("/cancel_use_promocode/",
+             response_model=PromocodeResponse,
              summary="Отменить использование промокода",
-             description="Отменить использование промокода",
+             description="Отменить использование промокода и вернуть реальную стоимость",
+             response_description="Тип и значение скидки и итоговая стоимость",
              tags=["Промокоды"])
 async def cancel_use_promocode(
     user: Annotated[dict, Depends(security_jwt)],
     cancel: CancelPromocodeRequest,
     db: Session = Depends(get_db),
-):
+) -> PromocodeResponse:
     # Найдем запись о покупке
     purchase = db.query(Purchase).filter(Purchase.id == cancel.purchase_id, Purchase.user_id == user["id"]).first()
 
@@ -223,8 +213,17 @@ async def cancel_use_promocode(
             detail="Запись о покупке не найдена"
         )
 
-    # Удаляем запись о покупке
-    db.delete(purchase)
+    # Получаем тариф, чтобы вернуть к стандартной стоимости
+    tariff = get_tariff(purchase.tariff_id, db)
+
+    # Обновляем стоимость покупки на стандартную
+    purchase.total_price = tariff.price
+    purchase.promo_code_id = None
+
     db.commit()
 
-    return {"detail": "Использование промокода отменено и запись удалена"}
+    return PromocodeResponse(
+        discount_type=None,  # Поскольку промокод был отменен
+        discount_value=0,    # Скидка 0
+        final_amount=tariff.price,  # Итоговая стоимость равна стандартной цене тарифа
+    )
