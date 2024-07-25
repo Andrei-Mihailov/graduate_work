@@ -52,31 +52,29 @@ jobs:
         
     - name: Set environment variables
       run: |
-        echo "DB_NAME=promocodes" >> $GITHUB_ENV
+        echo "DB_NAME=test_promocodes" >> $GITHUB_ENV
         echo "DB_USER=app" >> $GITHUB_ENV
         echo "DB_PASSWORD=123qwe" >> $GITHUB_ENV
         echo "DB_HOST=45.91.8.40" >> $GITHUB_ENV
         echo "DB_PORT=5431" >> $GITHUB_ENV
-    
-    - name: Drop existing test database
-      run: |
-        PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -U $DB_USER -p $DB_PORT -d $DB_NAME -c "DROP DATABASE IF EXISTS test_${DB_NAME};"
-        echo "DB_NAME=test_promocodes" >> $GITHUB_ENV
-        
+
     - name: Make migrations
       run: |
         source venv/bin/activate
         cd admin
         source ../venv/bin/activate
         python manage.py makemigrations
-        
+            
+    - name: Drop existing test database
+      run: |
+        PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -U $DB_USER -p $DB_PORT -d "promocodes" -c "DROP DATABASE IF EXISTS ${DB_NAME};
+            
     - name: Change environment variables
       run: |
         echo "DB_NAME=promocodes" >> $GITHUB_ENV
         
     - name: Run Django tests
       run: |
-        echo "DB_NAME=promocodes" >> $GITHUB_ENV
         source venv/bin/activate
         cd admin
         source ../venv/bin/activate
