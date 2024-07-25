@@ -171,7 +171,7 @@ async def cancel_use_promocode(
     db: Session = Depends(get_db),
 
 ):
-    user: Annotated[dict, Depends(security_jwt)]
+    user = Annotated[dict, Depends(security_jwt)]
     promo_usage = (
         db.query(PromoUsage)
         .filter_by(
