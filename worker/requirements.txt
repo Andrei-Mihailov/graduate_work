@@ -3,3 +3,4 @@ sqlalchemy==2.0.31
 pydantic==2.6.3
 pydantic-settings==2.2.1
 psycopg2_binary==2.9.9
+backoff==2.2.1

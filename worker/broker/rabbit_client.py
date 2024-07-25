@@ -2,11 +2,14 @@ import json
 
 import pika
 import pika.channel
+from pika.exceptions import AMQPConnectionError
+from backoff import on_exception, expo
 
 from core.settings import settings
 from db.postgres_db import check_user
 
 
+@on_exception(expo, (ConnectionError, AMQPConnectionError), max_tries=10)
 def rabbit_connect(queue_name):    
     connection = pika.BlockingConnection(pika.ConnectionParameters(
                 host=settings.rabbit_host,
