@@ -94,7 +94,6 @@ async def apply_promocode(
         final_amount=final_amount,
     )
 
-
 class ActivePromocodeResponse(BaseModel):
     id: int
     code: str
@@ -137,14 +136,15 @@ async def get_active_promocodes(
 async def use_promocode(
     promocode_id: int = Query(..., description="ID промокода"),
     tariff: float = Query(..., description="Тариф, связанный с промокодом"),
+    db: Session = Depends(get_db),
 ) -> PromocodeResponse:
+    user: Annotated[dict, Depends(security_jwt)]
     promocode = get_valid_promocode(promocode_id, db)
     final_amount = calculate_final_amount(tariff, promocode)
 
     promo_usage = PromoUsage(
         user_id=user["id"], promocode_id=promocode.id, is_successful=True
     )
-    db = get_db()
     db.add(promo_usage)
     db.commit()
     db.refresh(promo_usage)
@@ -168,9 +168,10 @@ class CancelPromocodeRequest(BaseModel):
 )
 async def cancel_use_promocode(
     cancel: CancelPromocodeRequest,
-    db: Session,
-    user: Annotated[dict, Depends(security_jwt)],
+    db: Session = Depends(get_db),
+
 ):
+    user: Annotated[dict, Depends(security_jwt)]
     promo_usage = (
         db.query(PromoUsage)
         .filter_by(
