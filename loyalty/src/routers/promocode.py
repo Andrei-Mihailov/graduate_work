@@ -6,15 +6,18 @@ from pydantic import BaseModel
 from datetime import datetime
 from utils.auth import security_jwt
 from models.promocode import Promocode
-from models.user import PromoUsage
-from database import get_db
+from models.user import (
+    PromoUsage,
+    Tariff,
+)  # Добавьте модель Tariff, если она существует
+from db.database import get_db
 
 router = APIRouter()
 
 
 class ApplyPromocodeRequest(BaseModel):
     promocode_id: int
-    tariff: float
+    tariff_id: int
 
 
 class PromocodeResponse(BaseModel):
@@ -56,18 +59,18 @@ def get_valid_promocode(promocode_id: int, db: Session) -> Promocode:
     return promocode
 
 
-def calculate_final_amount(tariff: float, promocode: Promocode) -> float:
+def calculate_final_amount(tariff_amount: float, promocode: Promocode) -> float:
     discount_value = promocode.discount_value
     if promocode.discount_type == "percentage":
-        final_amount = tariff * (1 - discount_value / 100)
+        final_amount = tariff_amount * (1 - discount_value / 100)
     elif promocode.discount_type == "fixed":
-        final_amount = tariff - discount_value
+        final_amount = tariff_amount - discount_value
     elif promocode.discount_type == "trial":
         final_amount = 0
     else:
         raise ValueError(f"Unsupported discount type: {promocode.discount_type}")
 
-    return max(int(final_amount), 0)
+    return max(final_amount, 0)
 
 
 @router.post(
@@ -83,8 +86,14 @@ async def apply_promocode(
     apply: ApplyPromocodeRequest,
     db: Session = Depends(get_db),
 ) -> PromocodeResponse:
+    # Получаем тариф по ID
+    tariff = db.query(Tariff).filter(Tariff.id == apply.tariff_id).first()
+    if not tariff:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Тариф не найден")
+
+    # Проверяем промокод
     promocode = get_valid_promocode(apply.promocode_id, db)
-    final_amount = calculate_final_amount(apply.tariff, promocode)
+    final_amount = calculate_final_amount(tariff.amount, promocode)
 
     # Создаем запись о применении промокода
     promo_usage = PromoUsage(
@@ -120,6 +129,7 @@ class ActivePromocodeResponse(BaseModel):
     tags=["Промокоды"],
 )
 async def get_active_promocodes(
+    user: Annotated[dict, Depends(security_jwt)],
     db: Session = Depends(get_db),
 ) -> list[ActivePromocodeResponse]:
     active_promocodes = (
@@ -130,7 +140,13 @@ async def get_active_promocodes(
         )
         .all()
     )
-    return active_promocodes
+
+    # Логика фильтрации промокодов по доступности пользователю
+    user_promocodes = [
+        promo for promo in active_promocodes if promo.user_id == user["id"]
+    ]
+
+    return user_promocodes
 
 
 @router.get(
@@ -144,11 +160,17 @@ async def get_active_promocodes(
 async def use_promocode(
     user: Annotated[dict, Depends(security_jwt)],
     promocode_id: int = Query(..., description="ID промокода"),
-    tariff: float = Query(..., description="Тариф, связанный с промокодом"),
+    tariff_id: int = Query(..., description="ID тарифа"),
     db: Session = Depends(get_db),
 ) -> PromocodeResponse:
+    # Получаем тариф по ID
+    tariff = db.query(Tariff).filter(Tariff.id == tariff_id).first()
+    if not tariff:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Тариф не найден")
+
+    # Проверяем промокод
     promocode = get_valid_promocode(promocode_id, db)
-    final_amount = calculate_final_amount(tariff, promocode)
+    final_amount = calculate_final_amount(tariff.amount, promocode)
 
     promo_usage = PromoUsage(
         user_id=user["id"],  # Используем ID из JWT
