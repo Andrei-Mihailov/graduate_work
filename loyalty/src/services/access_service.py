@@ -1,11 +1,10 @@
-from http import HTTPStatus
-from fastapi import Depends, HTTPException
+from fastapi import Depends
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.promocode import AvailableForUsers
 from .base_service import BaseService
-from db.database import get_db
+from db.postgres_db import get_session
 from db.redis_db import RedisCache, get_redis
 
 
@@ -28,6 +27,6 @@ class AccessService(BaseService):
 
 async def get_access_service(
     redis: RedisCache = Depends(get_redis),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_session),
 ) -> AccessService:
     return AccessService(redis, db)

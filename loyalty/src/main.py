@@ -5,8 +5,8 @@ from sentry_sdk.integrations.logging import LoggingIntegration
 from sentry_sdk.integrations.asgi import SentryAsgiMiddleware
 from routers import promocode, root
 from middleware import sentry_exception_middleware
-from database import engine
-from models import Base
+from db.postgres_db import engine
+from models.base import Base
 
 sentry_logging = LoggingIntegration(level=logging.INFO, event_level=logging.ERROR)
 

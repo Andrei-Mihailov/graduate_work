@@ -8,7 +8,7 @@ from models.purchase import Tariff, Purchase
 
 from .base_service import BaseService
 from .promo_code_service import PromoCodeService
-from db.database import get_db
+from db.postgres_db import get_session
 from db.redis_db import RedisCache, get_redis
 
 
@@ -47,33 +47,37 @@ class PurchaseService(BaseService):
 
     async def use_promocode(self, user_id: int, promocode_id: int, tariff_id: int) -> dict:
         """Использует промокод для покупки и возвращает данные о результате."""
-        promocode_service = PromoCodeService(self.cache, self.storage)
-        promocode = await promocode_service.get_valid_promocode(promocode_id, user_id)
+        try:
+            promocode_service = PromoCodeService(self.cache, self.storage)
+            promocode = await promocode_service.get_valid_promocode(promocode_id, user_id)
 
-        tariff: Tariff = await self.get_instance_by_id(tariff_id)
-        if not tariff:
-            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Тариф не найден")
+            tariff: Tariff = await self.get_instance_by_id(tariff_id)
+            if not tariff:
+                raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Тариф не найден")
 
-        final_amount = await self.calculate_final_amount(tariff.price, promocode)
+            final_amount = await self.calculate_final_amount(tariff.price, promocode)
 
-        purchase = Purchase(
-            user_id=user_id,
-            tariff_id=tariff_id,
-            promocode_id=promocode.id,
-            amount=final_amount,
-            created_at=datetime.utcnow()
-        )
-        await self.create_new_instance(purchase)
+            purchase = Purchase(
+                user_id=user_id,
+                tariff_id=tariff_id,
+                promocode_id=promocode.id,
+                amount=final_amount,
+                created_at=datetime.utcnow()
+            )
+            await self.create_new_instance(purchase)
 
-        return {
-            "discount_type": promocode.discount_type,
-            "discount_value": promocode.discount,
-            "final_amount": final_amount,
-        }
+            return {
+                "discount_type": promocode.discount_type,
+                "discount_value": promocode.discount,
+                "final_amount": final_amount,
+            }
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            raise e
 
 
 async def get_purchase_service(
     redis: RedisCache = Depends(get_redis),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_session),
 ) -> PromoCodeService:
     return PromoCodeService(redis, db)
