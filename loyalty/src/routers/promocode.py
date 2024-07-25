@@ -138,7 +138,7 @@ async def use_promocode(
     tariff: float = Query(..., description="Тариф, связанный с промокодом"),
     db: Session = Depends(get_db),
 ) -> PromocodeResponse:
-    user: Annotated[dict, Depends(security_jwt)]
+    user = Annotated[dict, Depends(security_jwt)]
     promocode = get_valid_promocode(promocode_id, db)
     final_amount = calculate_final_amount(tariff, promocode)
 
