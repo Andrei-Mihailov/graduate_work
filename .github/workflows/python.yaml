@@ -64,13 +64,13 @@ jobs:
     
     - name: Make migrations
       run: |
+        source venv/bin/activate
+        cd admin
+        source ../venv/bin/activate
         python manage.py makemigrations
     
     - name: Run Django tests
       run: |
-        source venv/bin/activate
-        cd admin
-        source ../venv/bin/activate  # Активируем виртуальное окружение снова перед запуском тестов
         python manage.py test --verbosity=2
         cd ../..
 
