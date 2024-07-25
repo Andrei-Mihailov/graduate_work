@@ -10,14 +10,17 @@ from database import get_db
 
 router = APIRouter()
 
+
 class ApplyPromocodeRequest(BaseModel):
     promocode_id: int
     tariff: float
+
 
 class PromocodeResponse(BaseModel):
     discount_type: str
     discount_value: float
     final_amount: float
+
 
 def get_valid_promocode(promocode_id: int, db: Session) -> Promocode:
     promocode = (
@@ -51,6 +54,7 @@ def get_valid_promocode(promocode_id: int, db: Session) -> Promocode:
 
     return promocode
 
+
 def calculate_final_amount(tariff: float, promocode: Promocode) -> float:
     discount_value = promocode.discount_value
     if promocode.discount_type == "percentage":
@@ -59,6 +63,7 @@ def calculate_final_amount(tariff: float, promocode: Promocode) -> float:
         final_amount = tariff - discount_value
 
     return max(final_amount, 0)
+
 
 @router.post(
     "/apply_promocode/",
@@ -89,12 +94,14 @@ async def apply_promocode(
         final_amount=final_amount,
     )
 
+
 class ActivePromocodeResponse(BaseModel):
     id: int
     code: str
     discount_type: str
     discount_value: float
     expiration_date: datetime
+
 
 @router.get(
     "/get_active_promocodes/",
@@ -117,6 +124,7 @@ async def get_active_promocodes(
         .all()
     )
     return active_promocodes
+
 
 @router.get(
     "/use_promocode/",
@@ -146,8 +154,10 @@ async def use_promocode(
         final_amount=final_amount,
     )
 
+
 class CancelPromocodeRequest(BaseModel):
     promocode_id: int
+
 
 @router.post(
     "/cancel_use_promocode/",
@@ -157,12 +167,14 @@ class CancelPromocodeRequest(BaseModel):
 )
 async def cancel_use_promocode(
     cancel: CancelPromocodeRequest,
-    db: Session = Depends(get_db),
-    user: Annotated[dict, Depends(security_jwt)]
+    db: Session,
+    user: Annotated[dict, Depends(security_jwt)],
 ):
     promo_usage = (
         db.query(PromoUsage)
-        .filter_by(promocode_id=cancel.promocode_id, user_id=user["id"], is_successful=True)
+        .filter_by(
+            promocode_id=cancel.promocode_id, user_id=user["id"], is_successful=True
+        )
         .first()
     )
 
