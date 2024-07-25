@@ -69,10 +69,11 @@ jobs:
         cd admin
         source ../venv/bin/activate
         python manage.py makemigrations
-        echo "DB_NAME=promocodes" >> $GITHUB_ENV
+        
     
     - name: Run Django tests
       run: |
+        echo "DB_NAME=promocodes" >> $GITHUB_ENV
         source venv/bin/activate
         cd admin
         source ../venv/bin/activate
