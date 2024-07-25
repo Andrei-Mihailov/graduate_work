@@ -67,7 +67,7 @@ jobs:
             
     - name: Drop existing test database
       run: |
-        PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -U $DB_USER -p $DB_PORT -d "promocodes" -c "DROP DATABASE IF EXISTS ${DB_NAME};
+        PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -U $DB_USER -p $DB_PORT -d promocodes -c "DROP DATABASE IF EXISTS ${DB_NAME};
             
     - name: Change environment variables
       run: |
