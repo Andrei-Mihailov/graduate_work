@@ -60,7 +60,7 @@ jobs:
     
     - name: Drop existing test database
       run: |
-        PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -U $DB_USER -c "DROP DATABASE IF EXISTS test_${DB_NAME};"
+        PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -U $DB_USER -p $DB_PORT -c "DROP DATABASE IF EXISTS test_${DB_NAME};"
       
     - name: Run Django tests
       run: |
