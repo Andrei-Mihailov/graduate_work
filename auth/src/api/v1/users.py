@@ -61,7 +61,7 @@ async def login(
         sentry_sdk.capture_exception(e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Произошла ошибка при авторизации",
+            detail="An error occurred while logging in",
         )
 
 
@@ -103,7 +103,7 @@ async def user_registration(
         sentry_sdk.capture_exception(e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Произошла ошибка при регистрации пользователя",
+            detail="An error occurred while registering the user",
         )
 
 
@@ -142,7 +142,7 @@ async def change_user_info(
         sentry_sdk.capture_exception(e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Произошла ошибка при изменении данных пользователя",
+            detail="An error occurred while changing user data",
         )
 
 # /api/v1/users/delete
@@ -174,7 +174,7 @@ async def delete_user(
         sentry_sdk.capture_exception(e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Произошла ошибка при удалении данных пользователя",
+            detail="An error occurred while deleting user data",
         )
 
 # /api/v1/users/logout
@@ -199,7 +199,7 @@ async def logout(
         sentry_sdk.capture_exception(e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Произошла ошибка при выходе пользователя",
+            detail="An error occurred while logging out the user",
         )
 
 
@@ -230,7 +230,7 @@ async def refresh_token(
         sentry_sdk.capture_exception(e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Произошла ошибка при обновлении токена",
+            detail="An error occurred while updating the token",
         )
 
 
@@ -272,7 +272,7 @@ async def get_login_history(
         sentry_sdk.capture_exception(e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Произошла ошибка при получении истории авторизаций",
+            detail="An error occurred while retrieving authorization history",
         )
 
 
@@ -301,5 +301,5 @@ async def check_permission(
         sentry_sdk.capture_exception(e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Произошла ошибка при проверке разрешений пользователя",
+            detail="An error occurred while checking user permissions",
         )

@@ -113,7 +113,7 @@ def allow_this_user(function):
             sentry_sdk.capture_exception(e)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Произошла ошибка при проверке пользователя",
+                detail="An error occurred while verifying the user",
             ) from e
 
     return wrapper

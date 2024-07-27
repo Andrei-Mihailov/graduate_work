@@ -50,9 +50,9 @@ app = FastAPI(
 )
 
 sentry_sdk.init(
-    dsn="https://7e322a912461958b85dcdf23716aeff5@o4507457845592064.ingest.de.sentry.io/4507457848016976",
-    traces_sample_rate=1.0,
-    profiles_sample_rate=1.0,
+    dsn=settings.sentry_sdk_dns,
+    traces_sample_rate=settings.sentry_traces_sample_rate,
+    profiles_sample_rate=settings.sentry_profiles_sample_rate,
 )
 
 
@@ -134,7 +134,8 @@ async def create_superuser(email, password):
         try:
             await session.commit()
         except Exception as e:
-            print(f"Ошибка при создании объекта: {e}")
+            sentry_sdk.capture_exception(e)
+            click.echo(f"Error creating object")
             return None
 
         click.echo(f"Superuser {email} created successfully!")
@@ -145,7 +146,7 @@ if __name__ == "__main__":
         create_superuser()
     else:
         options = {
-            "bind": "%s:%s" % ("0.0.0.0", "8000"),
+            "bind": "%s:%s" % ("0.0.0.0", settings.service_port),
             "workers": number_of_workers(),
             "worker_class": "uvicorn.workers.UvicornWorker",
         }

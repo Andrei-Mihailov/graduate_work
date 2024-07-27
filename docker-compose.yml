@@ -65,7 +65,7 @@ services:
       rabbitmq:
         condition: service_healthy
     env_file:
-      - ./auth/compose.env
+      - ./auth/.env
 
   # # ------- loyalty service ------ #
   loyalty_db:
@@ -102,7 +102,7 @@ services:
       redis:
         condition: service_healthy
     env_file:
-      - ./admin/compose.env
+      - ./admin/config/.env
 
 
   loyalty_api_service:
@@ -119,7 +119,7 @@ services:
       redis:
         condition: service_healthy
     env_file:
-      - ./loyalty/compose.env
+      - ./loyalty/.env
 
   loyalty_worker_reg:
     build:
@@ -133,7 +133,7 @@ services:
       loyalty_db:
         condition: service_healthy
     env_file:
-      - ./worker/compose.env
+      - ./worker/.env
   
   loyalty_worker_del:
     build:
@@ -147,7 +147,7 @@ services:
       loyalty_db:
         condition: service_healthy
     env_file:
-      - ./worker/compose.env
+      - ./worker/.env
 
   # # ------- nginx ------ #
   nginx:

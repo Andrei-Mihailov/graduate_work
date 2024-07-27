@@ -40,7 +40,7 @@ services:
     volumes:
       - pgdbauth_all:/var/lib/postgresql@13/data/
     ports:
-      - "${AUTH_DB_PORT}:${AUTH_DB_PORT}"
+      - "5432:${AUTH_DB_PORT}"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d ${AUTH_DB_NAME} -U ${AUTH_DB_USER}"]
       interval: 5s
@@ -65,7 +65,7 @@ services:
       rabbitmq:
         condition: service_healthy
     env_file:
-      - ./auth/compose.env
+      - ./auth/.env
 
   # # ------- loyalty service ------ #
   loyalty_db:
@@ -102,7 +102,7 @@ services:
       redis:
         condition: service_healthy
     env_file:
-      - ./admin/compose.env
+      - ./admin/config/.env
 
   loyalty_api_service:
     container_name: loyalty_api_service
@@ -118,7 +118,7 @@ services:
       redis:
         condition: service_healthy
     env_file:
-      - ./loyalty/compose.env
+      - ./loyalty/.env
 
   loyalty_worker_reg:
     build:
@@ -132,7 +132,7 @@ services:
       loyalty_db:
         condition: service_healthy
     env_file:
-      - ./worker/compose.env
+      - ./worker/.env
   
   loyalty_worker_del:
     build:
@@ -146,7 +146,7 @@ services:
       loyalty_db:
         condition: service_healthy
     env_file:
-      - ./worker/compose.env
+      - ./worker/.env
 
   cloudbeaver:
     image: dbeaver/cloudbeaver:24.0.5

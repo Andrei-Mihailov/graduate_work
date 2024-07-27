@@ -48,6 +48,10 @@ class Settings(BaseSettings):
     rabbit_password: str
     rabbit_delivery_mode: int
     rabbit_exchange: str
+
+    sentry_sdk_dns: str
+    sentry_traces_sample_rate: float
+    sentry_profiles_sample_rate: float
     
     class Config:
         env_file = ".env"

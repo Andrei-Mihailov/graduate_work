@@ -35,13 +35,13 @@ async def create_permission(
 
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Такое разрешение уже существует",
+            detail="Such a permission already exists.",
         )
     except Exception as e:
         sentry_sdk.capture_exception(e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Произошла ошибка при создании разрешения",
+            detail="An error occurred while creating permission",
         ) from e
 
 
@@ -71,7 +71,7 @@ async def assign_permission_to_role(
         sentry_sdk.capture_exception(e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Произошла ошибка при назначении разрешения роли",
+            detail="An error occurred while assigning role permission",
         ) from e
 
 
@@ -101,5 +101,5 @@ async def remove_permission_from_role(
         sentry_sdk.capture_exception(e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Произошла ошибка при удалении разрешения из роли",
+            detail="An error occurred while removing permission from role",
         ) from e

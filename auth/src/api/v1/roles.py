@@ -39,13 +39,13 @@ async def create(
             return RolesSchema(uuid=role.id, type=role.type)
 
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Такая роль уже существует"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Role already exists"
         )
     except Exception as e:
         sentry_sdk.capture_exception(e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Произошла ошибка при создании роли",
+            detail="An error occurred while creating the role",
         ) from e
 
 
@@ -73,7 +73,7 @@ async def delete(
         sentry_sdk.capture_exception(e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Произошла ошибка при удалении роли",
+            detail="An error occurred while deleting the role",
         ) from e
 
 
@@ -104,7 +104,7 @@ async def change(
         sentry_sdk.capture_exception(e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Произошла ошибка при редактировании роли",
+            detail="An error occurred while editing the role",
         ) from e
 
 
@@ -145,7 +145,7 @@ async def list_roles(
         sentry_sdk.capture_exception(e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Произошла ошибка при получении списка ролей",
+            detail="An error occurred while retrieving the list of roles",
         ) from e
 
 
@@ -176,7 +176,7 @@ async def add_user_role(
         sentry_sdk.capture_exception(e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Произошла ошибка при назначении роли пользователю",
+            detail="An error occurred while assigning a role to the user",
         ) from e
 
 
@@ -202,5 +202,5 @@ async def del_user_role(
         sentry_sdk.capture_exception(e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Произошла ошибка при удалении роли у пользователя",
+            detail="An error occurred while deleting the role from the user",
         ) from e
