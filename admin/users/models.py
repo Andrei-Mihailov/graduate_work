@@ -12,19 +12,20 @@ class Group(models.Model):
         verbose_name="Описание",
         max_length=255)
 
-    def __str__(self):
-        return self.name
-
     class Meta:
         db_table = "groups"
         verbose_name = "Группа"
         verbose_name_plural = "Группы"
 
+    def __str__(self):
+        return self.name
+
 
 class User(models.Model):
-    uuid = models.UUIDField(default=uuid.uuid4, unique=True)
+    uuid = models.UUIDField(
+        default=uuid.uuid4,
+        primary_key=True)
     email = models.EmailField(
-        primary_key=True,
         null=False,
         max_length=255,
         unique=True)
@@ -34,10 +35,10 @@ class User(models.Model):
         blank=True)
     is_active = models.BooleanField(default=True)
 
-    def __str__(self):
-        return self.email
-
     class Meta:
         db_table = "user"
         verbose_name = "Пользователь"
         verbose_name_plural = "Пользователи"
+
+    def __str__(self):
+        return self.email

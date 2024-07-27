@@ -2,7 +2,6 @@
 .DS_Store
 .idea
 *.pyc
-migrations/
 .vscode/
 rabbitmq
 .venv

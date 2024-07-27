@@ -29,6 +29,11 @@ class PromoCode(models.Model):
     )
     is_deleted = models.BooleanField(default=False)
 
+    class Meta:
+        db_table = "promo_codes"
+        verbose_name = "Промокод"
+        verbose_name_plural = "Промокоды"
+
     def __str__(self):
         return self.code
 
@@ -48,17 +53,17 @@ class PromoCode(models.Model):
         else:
             cache.set(f"promocode:{self.code}", self.id, self.expiration_date)
 
-    class Meta:
-        db_table = "promo_codes"
-        verbose_name = "Промокод"
-        verbose_name_plural = "Промокоды"
-
 
 class Tariff(models.Model):
     name = models.CharField(verbose_name="Название", max_length=255)
     price = models.FloatField(verbose_name="Стоимость")
     description = models.CharField(verbose_name="Описание", max_length=255)
     is_deleted = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = "tariffs"
+        verbose_name = "Тариф"
+        verbose_name_plural = "Тарифы"
 
     def __str__(self):
         return self.name
@@ -72,11 +77,6 @@ class Tariff(models.Model):
 
         super(Tariff, self).save(*args, **kwargs)
 
-    class Meta:
-        db_table = "tariffs"
-        verbose_name = "Тариф"
-        verbose_name_plural = "Тарифы"
-
 
 class Purchase(models.Model):
     user = models.ForeignKey(
@@ -89,13 +89,13 @@ class Purchase(models.Model):
     total_price = models.FloatField(verbose_name="Итоговая стоимость")
     purchase_date = models.DateField(verbose_name="Дата покупки", auto_now_add=True)
 
-    def __str__(self):
-        return f"{self.tariff} - {self.purchase_date}"
-
     class Meta:
         db_table = "purchases"
         verbose_name = "Покупка"
         verbose_name_plural = "Покупки"
+
+    def __str__(self):
+        return f"{self.tariff} - {self.purchase_date}"
 
 
 class AvailableForUsers(models.Model):
@@ -106,6 +106,11 @@ class AvailableForUsers(models.Model):
     promo_code = models.ForeignKey(
         PromoCode, verbose_name="Промокод", on_delete=models.DO_NOTHING
     )
+
+    class Meta:
+        db_table = "availables"
+        verbose_name = "Доступ"
+        verbose_name_plural = "Доступы"
 
     def __str__(self):
         return self.promo_code.code
@@ -125,8 +130,3 @@ class AvailableForUsers(models.Model):
                     группы - { ", ".join([str(group) for group in self.group.all()])}
                 ''')
         )
-
-    class Meta:
-        db_table = "availables"
-        verbose_name = "Доступ"
-        verbose_name_plural = "Доступы"

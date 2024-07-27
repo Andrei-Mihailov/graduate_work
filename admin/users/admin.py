@@ -1,26 +1,11 @@
-import random
-import string
 import sentry_sdk
 
 from django.contrib import admin, messages
-from django.db.models import Count, Q, F
+from django.db.models import Count, Q
 
 from promocodes.models import PromoCode, Purchase, AvailableForUsers
 from . import models
 from .forms import XForm
-
-
-# генерация тестовых данных
-# for i in range(5):
-#     models.Group.objects.create(name="".join(random.choices(string.ascii_letters, k=random.randint(5, 10))))
-
-# domain = "example.com"
-# for i in range(100):
-#     username = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(10))
-#     user = models.User.objects.create(email=f"{username}@{domain}")
-#     for k in range(random.randint(1, 5)):
-#         group = models.Group.objects.get(id=random.randint(1, 5))
-#         user.group.add(group)
 
 
 class Group(admin.ModelAdmin):
@@ -72,7 +57,6 @@ class User(admin.ModelAdmin):
                 if promo_code.num_uses > 0:
                     promo_code.num_uses += 1
                     promo_code.save()
-                    # PromoCode.objects.filter(id=promo_code_id).update(num_uses=F('num_uses') - 1)
                     if not AvailableForUsers.objects.filter(
                         Q(user=obj, promo_code=promo_code) |
                         Q(group__in=obj.group.all(), promo_code=promo_code)

@@ -33,8 +33,6 @@ include(
 
 ALLOWED_HOSTS = (
     os.environ.get("ALLOWED_HOSTS")
-    .replace("[", "")
-    .replace("]", "")
     .replace("'", "")
     .split(",")
 )
@@ -74,12 +72,7 @@ AUTH_API_LOGIN_URL = os.environ.get("AUTH_API_LOGIN_URL")
 
 
 sentry_sdk.init(
-    dsn="https://cf3dc30539417cdefc65204e4ca2fe4b@o4507457845592064.ingest.de.sentry.io/4507640034820176",
-    # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for performance monitoring.
-    traces_sample_rate=1.0,
-    # Set profiles_sample_rate to 1.0 to profile 100%
-    # of sampled transactions.
-    # We recommend adjusting this value in production.
-    profiles_sample_rate=1.0,
+    dsn=os.environ.get("SENTRY_SDK_DSN"),
+    traces_sample_rate=float(os.environ.get("SENTRY_TRACES_SAMPLE_RATE")),
+    profiles_sample_rate=float(os.environ.get("SENTRY_PROFILES_SAMPLE_RATE")),
 )
