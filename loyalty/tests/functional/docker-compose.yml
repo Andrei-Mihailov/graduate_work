@@ -1,0 +1,63 @@
+version: "3"
+
+services:
+  redis:
+    image: redis:7.2.4
+    container_name: redis-auth-test
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+    ports:
+      - "${REDIS_PORT}:6379"  # Expose the port for Redis
+
+  db:
+    image: postgres:13
+    container_name: pgdb-auth-test
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "${DB_PORT}:5432"  # Expose the port for PostgreSQL
+    volumes:
+      - pgdbauth-test:/var/lib/postgresql/data/
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d ${DB_NAME} -U ${DB_USER}"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+
+  app:
+    build:
+      context: ..
+      dockerfile: ../Dockerfile
+    command: python src/main.py
+    container_name: solution-auth-test
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    env_file:
+      - ../.env
+
+  tests:
+    build:
+      context: ./tests
+      dockerfile: Dockerfile
+    command: pytest -v tests/test.py
+    container_name: test-auth-test
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+      app:
+        condition: service_started
+    env_file:
+      - ../.env
+
+volumes:
+  pgdbauth-test:
