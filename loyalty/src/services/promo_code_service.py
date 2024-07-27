@@ -2,13 +2,10 @@ import sentry_sdk
 
 from typing import List
 from datetime import datetime
-from http import HTTPStatus
-from fastapi import Depends, HTTPException
-from sqlalchemy.future import select
+from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.promocode import PromoCode
-from models.user import User
 from .base_service import BaseService
 from db.postgres_db import get_session
 from db.redis_db import RedisCache, get_redis
@@ -30,29 +27,21 @@ class PromoCodeService(BaseService):
             try:
                 promocode: PromoCode = await self.get_instance_by_code(promocode_str)
                 if not promocode or not promocode.is_active:
-                    raise HTTPException(
-                        status_code=HTTPStatus.NOT_FOUND, detail="Промокод не найден или истек"
-                    )
+                    return 'not found'
 
-                # Получаем информацию о пользователе
-                user_record = await self.storage.execute(
-                    select(User).filter(User.id == user_id)
-                )
-                user = user_record.scalars().first()
+                user = await self.get_user_by_id(user_id)
 
                 if not user:
-                    raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Пользователь не найден")
+                    return 'User not found'
 
                 # Проверяем доступность промокода для пользователя через AccessService
                 user_has_access = await self.access_service.is_promocode_available_for_user(promocode.id, user_id, user.group_id)
 
                 if not user_has_access:
-                    raise HTTPException(
-                        status_code=HTTPStatus.FORBIDDEN, detail="У вас нет доступа к этому промокоду"
-                    )
+                    return 'not access'
 
                 if promocode.expiration_date and promocode.expiration_date < datetime.utcnow().date():
-                    raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Промокод истек")
+                    return 'expired'
 
                 # Кэшируем активный промокод
                 await self.cache_active_instances([promocode])
@@ -65,22 +54,12 @@ class PromoCodeService(BaseService):
 
     async def get_active_promocodes_for_user(self, user_id: int) -> List[dict]:
         """Получает активные промокоды для пользователя."""
-        user_record = await self.storage.execute(
-            select(User).filter(User.id == user_id)
-        )
-        user = user_record.scalars().first()
+        user = await self.get_user_by_id(user_id)
 
         if not user:
-            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Пользователь не найден")
+            return None
 
-        active_promocodes = (
-            await self.storage.execute(
-                select(PromoCode).filter(
-                    PromoCode.is_active == True,
-                    PromoCode.expiration_date >= datetime.utcnow().date(),
-                )
-            )
-        ).scalars().all()
+        active_promocodes = self.get_active_promocodes()
 
         user_promocodes = []
         for promo in active_promocodes:

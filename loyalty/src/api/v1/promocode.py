@@ -41,9 +41,21 @@ async def apply_promocode(
         tariff: Tariff = await purchase_service.get_instance_by_id(apply.tariff_id)
 
         if not tariff:
-            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Тариф не найден")
+            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Tariff not found")
 
         promocode = await promo_code_service.get_valid_promocode(apply.promocode, user["id"])
+        if promocode == 'not found':
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, detail="Promocode not found or expired"
+            )
+        elif promocode == 'User not found':
+            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="User not found")
+        elif promocode == 'not access':
+            raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN, detail="You have not access to this promocode"
+            )
+        elif promocode == 'expired':
+            raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Promocode expired")
 
         final_amount = await purchase_service.calculate_final_amount(tariff.price, promocode)
 
@@ -74,7 +86,10 @@ async def get_active_promocodes(
     user: Annotated[dict, Depends(security_jwt)],
     promo_code_service: PromoCodeService = Depends(get_promo_code_service),
 ) -> List[ActivePromocodeResponse]:
-    return await promo_code_service.get_active_promocodes_for_user(user["id"])
+    result = await promo_code_service.get_active_promocodes_for_user(user["id"])
+    if not result:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="User not found")
+    return result
 
 
 @router.post("/use_promocode/",
@@ -86,12 +101,12 @@ async def get_active_promocodes(
 async def use_promocode(
     user: Annotated[dict, Depends(security_jwt)],
     apply: ApplyPromocodeRequest,
-    purchase_service: PurchaseService = Depends(get_purchase_service),
-    promo_code_service: PromoCodeService = Depends(get_promo_code_service)
+    purchase_service: PurchaseService = Depends(get_purchase_service)
 ) -> PromocodeResponse:
     try:
         result = await purchase_service.use_promocode(user["id"], apply.promocode, apply.tariff_id)
-
+        if not result:
+            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Tariff not found")
         return PromocodeResponse(
             discount_type=result["discount_type"],
             discount_value=result["discount_value"],
@@ -120,9 +135,12 @@ async def cancel_use_promocode(
 ) -> PromocodeResponse:
     try:
         purchase = await purchase_service.get_purchase(cancel.purchase_id, user["id"])
-
+        if not purchase:
+            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Data purchase not found")
         # Обновляем стоимость покупки на стандартную
         final_amount = await purchase_service.cancel_purchase(purchase.id)
+        if not final_amount:
+            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Data purchase not found")
 
         return PromocodeResponse(
             discount_type=None,  # Поскольку промокод был отменен

@@ -1,9 +1,8 @@
 import sentry_sdk
 
 from datetime import datetime
-from http import HTTPStatus
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import Depends, HTTPException
+from fastapi import Depends
 
 from models.purchase import Tariff, Purchase
 from models.promocode import PromoCode
@@ -34,7 +33,7 @@ class PurchaseService(BaseService):
         """Получает запись о покупке по ID для конкретного пользователя."""
         purchase: Purchase = await self.get_instance_by_id(purchase_id)
         if not purchase or purchase.user_id != user_id:
-            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Запись о покупке не найдена.")
+            return None
         return purchase
 
     async def cancel_purchase(self, purchase_id: int, user_id: int) -> None:
@@ -42,7 +41,7 @@ class PurchaseService(BaseService):
         purchase: Purchase = await self.get_instance_by_id(purchase_id)
 
         if not purchase or purchase.user_id != user_id:
-            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Запись о покупке не найдена.")
+            return None
 
         await self.del_instance_by_id(purchase_id)
 
@@ -54,8 +53,7 @@ class PurchaseService(BaseService):
 
             tariff: Tariff = await self.get_instance_by_id(tariff_id)
             if not tariff:
-                raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Тариф не найден")
-
+                return None
             final_amount = await self.calculate_final_amount(tariff.price, promocode)
 
             purchase = Purchase(

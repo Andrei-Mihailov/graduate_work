@@ -1,6 +1,7 @@
 import backoff
 import sentry_sdk
 
+from datetime import datetime
 from typing import List
 from abc import ABC
 from sqlalchemy.exc import DBAPIError
@@ -10,6 +11,7 @@ from asyncpg.exceptions import PostgresConnectionError as conn_err_pg
 
 from db.redis_db import RedisCache
 from db.postgres_db import AsyncSession
+from models.user import User
 
 
 class AbstractBaseService(ABC):
@@ -50,6 +52,31 @@ class BaseService(AbstractBaseService):
             return None
 
     @backoff.on_exception(backoff.expo, conn_err_pg, max_tries=5)
+    async def get_user_by_id(self, user_id: str):
+        stmt = select(User).filter(User.id == user_id)
+        try:
+            result = await self.storage.execute(stmt)
+            instance = result.scalars().first()
+            return instance
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            return None
+
+    @backoff.on_exception(backoff.expo, conn_err_pg, max_tries=5)
+    async def get_active_promocodes(self):
+        stmt = select(self.model).filter(
+            self.model.is_active == True,
+            self.model.expiration_date >= datetime.utcnow().date(),
+        )
+        try:
+            result = await self.storage.execute(stmt)
+            instances = result.scalars().all()
+            return instances
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            return None
+
+    @backoff.on_exception(backoff.expo, conn_err_pg, max_tries=5)
     async def get_instance_by_code(self, code: str):
         stmt = select(self.model).filter(self.model.code == code)
         try:
@@ -85,4 +112,5 @@ class BaseService(AbstractBaseService):
 
     async def cache_active_instances(self, instances: List):
         for instance in instances:
+
             await self.set_cache(f"{self.model.__name__.lower()}:{instance.id}", instance)
