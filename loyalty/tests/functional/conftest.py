@@ -5,10 +5,9 @@ import aiohttp
 @pytest_asyncio.fixture()
 def make_post_request():
     async def inner(url: str, param: dict = None, cookie=None):
-        session = aiohttp.ClientSession(cookies=cookie)
-        response = await session.post(url, params=param)
-        await session.close()
-        return response
+        async with aiohttp.ClientSession(cookies=cookie) as session:
+            response = await session.post(url, params=param)
+            return response
 
     return inner
 
@@ -16,11 +15,9 @@ def make_post_request():
 @pytest_asyncio.fixture()
 def make_put_request():
     async def inner(url: str, param: dict = None, cookie=None):
-        session = aiohttp.ClientSession(cookies=cookie)
-
-        response = await session.put(url, params=param)
-        await session.close()
-        return response
+        async with aiohttp.ClientSession(cookies=cookie) as session:
+            response = await session.put(url, params=param)
+            return response
 
     return inner
 
@@ -28,10 +25,8 @@ def make_put_request():
 @pytest_asyncio.fixture()
 def make_get_request():
     async def inner(url: str, cookie=None):
-        session = aiohttp.ClientSession(cookies=cookie)
-
-        response = await session.get(url)
-        await session.close()
-        return response
+        async with aiohttp.ClientSession(cookies=cookie) as session:
+            response = await session.get(url)
+            return response
 
     return inner

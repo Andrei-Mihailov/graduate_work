@@ -6,7 +6,7 @@ from services.promo_code_service import PromoCodeService
 
 from ..settings import test_settings
 
-SERVICE_URL = test_settings.SERVIСE_URL
+SERVICE_URL = test_settings.SERVICE_URL
 
 
 @pytest.fixture

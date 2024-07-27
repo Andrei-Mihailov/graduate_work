@@ -11,7 +11,7 @@ class TestSettings(BaseSettings):
     SERVICE_PORT: int = Field(default={env.get("SERVICE_PORT")})
 
     @property
-    def SERVIСE_URL(self):
+    def SERVICE_URL(self):
         return f"http://{self.SERVICE_HOST}:{self.SERVICE_PORT}"
 
 
