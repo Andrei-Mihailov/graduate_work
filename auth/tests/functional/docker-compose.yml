@@ -29,7 +29,7 @@ services:
       retries: 5
 
   app:
-    build: ../../.
+    build: ../../auth.Dockerfile
     command: python main.py
     container_name: solution-auth-test
     depends_on:
