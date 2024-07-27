@@ -18,20 +18,20 @@ def decode_jwt(
     except jwt.exceptions.DecodeError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
+            detail="Неверные учетные данные для проверки подлинности",
         )
     except jwt.exceptions.InvalidAlgorithmError:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token algorithm"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Недопустимый алгоритм использования токена"
         )
     except jwt.exceptions.InvalidSignatureError:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token signature"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Недопустимая подпись токена"
         )
     except jwt.exceptions.ExpiredSignatureError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token has expired, refresh token",
+            detail="Срок действия токена истек, обновите токен",
         )
     return decoded
 
@@ -46,18 +46,18 @@ class JWTBearer(HTTPBearer):
         if not credentials:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Invalid authorization code.",
+                detail="Неверный код авторизации.",
             )
         if not credentials.scheme == "Bearer":
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Only Bearer token might be accepted",
+                detail="Может быть принят только токен на предъявителя",
             )
         decoded_token = self.parse_token(credentials.credentials)
         if not decoded_token:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Invalid or expired token.",
+                detail="Недействительный или просроченный токен.",
             )
 
         if self.check_user:
@@ -69,7 +69,7 @@ class JWTBearer(HTTPBearer):
             )
             if response.status != status.HTTP_202_ACCEPTED:
                 raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN, detail="User doesn't exist"
+                    status_code=status.HTTP_403_FORBIDDEN, detail="Пользователь не существует"
                 )
 
         return decoded_token
