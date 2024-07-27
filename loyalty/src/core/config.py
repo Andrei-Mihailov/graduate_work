@@ -1,7 +1,16 @@
-import logging
+import os
 
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings
+from passlib.context import CryptContext
+from fastapi.security import OAuth2PasswordBearer
+
+
+class AuthJWT(BaseModel):
+    secret_key: str = "secret-key"
+    algorithm: str = "HS256"
+    access_token_expire_minutes: int = 20 * 60
+    refresh_token_expire_minutes: int = 30 * 24 * 60 * 60  # 30 дней
 
 
 class Settings(BaseSettings):
@@ -13,6 +22,20 @@ class Settings(BaseSettings):
     db_host: str = Field("", env="DB_HOST")
     db_port: int = Field(5321, env="DB_PORT")
 
+    # Настройки Redis
+    redis_host: str
+    redis_port: int
+
+    # Настройки jwt
+    auth_jwt: AuthJWT = AuthJWT()
+    pwd_context: CryptContext = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    oauth2_scheme: OAuth2PasswordBearer = OAuth2PasswordBearer(tokenUrl="token")
+
+    # Настройки Sentry
+    sentry_sdk_dns: str
+    sentry_traces_sample_rate: float
+    sentry_profiles_sample_rate: float
+
     class Config:
         env_file = ".env.example"
         case_sensitive = False
@@ -20,8 +43,8 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
+# Корень проекта
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 class PostgreSQLConfig(BaseModel):

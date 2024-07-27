@@ -4,6 +4,7 @@ import click
 import asyncio
 import functools as ft
 import sys
+import sentry_sdk
 
 from fastapi import FastAPI, Depends
 from fastapi.responses import ORJSONResponse
@@ -19,7 +20,6 @@ from db import postgres_db
 from db import redis_db
 from core.config import settings
 from api.v1.service import check_jwt
-import sentry_sdk
 from services.broker_service import broker_service
 from models.broker import EventType
 

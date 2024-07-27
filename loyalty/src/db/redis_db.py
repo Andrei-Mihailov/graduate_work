@@ -70,15 +70,15 @@ class RedisCache(Cache):
         """
         key = f"promocode_usage:{promocode_id}"
         usage_count = await self.redis.incr(key)  # Увеличиваем счетчик использований
-        return usage_count  # Возврат текущего значения счетчика
+        return usage_count
 
     @backoff.on_exception(backoff.expo, conn_err_redis, max_tries=5)
     async def cancel_promocode_usage(self, promocode_id: int):
         """
-        Отменяет использование промокода, сбрасывая его счетчик использований.
+        Отменяет использование промокода, уменьшая его счетчик использований.
         """
         key = f"promocode_usage:{promocode_id}"
-        await self.redis.delete(key)  # Удаляем счетчик использований
+        await self.redis.decr(key)  # Уменьшаем счетчик использований
 
 
 redis: Union[RedisCache, None] = None
