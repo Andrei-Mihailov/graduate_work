@@ -26,8 +26,8 @@ app = FastAPI(
     lifespan=lifespan,
     title="Сервис лояльности",
     description="Реализует методы проверки доступных пользователю промокодов, применение промокодов, покупки с использованием промокода и отмену применения промокода",
-    docs_url="/loyality/api/openapi",
-    openapi_url="/loyality/api/openapi.json",
+    docs_url="/loyalty/api/openapi",
+    openapi_url="/loyalty/api/openapi.json",
     default_response_class=ORJSONResponse,
 )
 
@@ -62,7 +62,7 @@ class StandaloneApplication(gunicorn.app.base.BaseApplication):
         return self.application
 
 
-app.include_router(promocode.router, prefix="/loyality/api/v1/promocodes")
+app.include_router(promocode.router, prefix="/loyalty/api/v1/promocodes")
 
 if __name__ == "__main__":
     options = {

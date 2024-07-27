@@ -3,7 +3,7 @@ import sentry_sdk
 from http import HTTPStatus
 from typing import Annotated, List
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
 
 from utils.auth import security_jwt
@@ -15,8 +15,8 @@ router = APIRouter()
 
 
 class ApplyPromocodeRequest(BaseModel):
-    promocode: str
-    tariff_id: int
+    promocode: str = Field(description="Промокод")
+    tariff_id: int = Field(description="Ид тарифа")
 
 
 class PromocodeResponse(BaseModel):
@@ -25,7 +25,7 @@ class PromocodeResponse(BaseModel):
     final_amount: float
 
 
-@router.post("/apply_promocode/",
+@router.post("/apply_promocode",
              response_model=PromocodeResponse,
              summary="Применить промокод",
              description="Применить промокод и рассчитать итоговую стоимость",
@@ -33,7 +33,7 @@ class PromocodeResponse(BaseModel):
              tags=["Промокоды"])
 async def apply_promocode(
     user: Annotated[dict, Depends(security_jwt)],
-    apply: ApplyPromocodeRequest,
+    apply: Annotated[ApplyPromocodeRequest, Depends()],
     promo_code_service: PromoCodeService = Depends(get_promo_code_service),
     purchase_service: PurchaseService = Depends(get_purchase_service)
 ) -> PromocodeResponse:
@@ -76,7 +76,7 @@ class ActivePromocodeResponse(BaseModel):
     expiration_date: datetime
 
 
-@router.get("/get_active_promocodes/",
+@router.get("/get_active_promocodes",
             response_model=List[ActivePromocodeResponse],
             summary="Получить активные промокоды пользователя",
             description="Получить все активные промокоды, доступные пользователю",
@@ -92,7 +92,7 @@ async def get_active_promocodes(
     return result
 
 
-@router.post("/use_promocode/",
+@router.post("/use_promocode",
              response_model=PromocodeResponse,
              summary="Покупка с промокодом",
              description="Использовать промокод и сделать запись о покупке",
@@ -100,7 +100,7 @@ async def get_active_promocodes(
              tags=["Промокоды"])
 async def use_promocode(
     user: Annotated[dict, Depends(security_jwt)],
-    apply: ApplyPromocodeRequest,
+    apply: Annotated[ApplyPromocodeRequest, Depends()],
     purchase_service: PurchaseService = Depends(get_purchase_service)
 ) -> PromocodeResponse:
     try:
@@ -122,7 +122,7 @@ class CancelPromocodeRequest(BaseModel):
     purchase_id: int
 
 
-@router.post("/cancel_use_promocode/",
+@router.post("/cancel_use_promocode",
              response_model=PromocodeResponse,
              summary="Отменить использование промокода",
              description="Отменить использование промокода и вернуть реальную стоимость",
@@ -130,7 +130,7 @@ class CancelPromocodeRequest(BaseModel):
              tags=["Промокоды"])
 async def cancel_use_promocode(
     user: Annotated[dict, Depends(security_jwt)],
-    cancel: CancelPromocodeRequest,
+    cancel: Annotated[CancelPromocodeRequest, Depends()],
     purchase_service: PurchaseService = Depends(get_purchase_service),
 ) -> PromocodeResponse:
     try:
