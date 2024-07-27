@@ -4,8 +4,8 @@ import click
 import asyncio
 import functools as ft
 import sys
-import sentry_sdk
 
+import sentry_sdk
 from fastapi import FastAPI, Depends
 from fastapi.responses import ORJSONResponse
 from redis.asyncio import Redis
@@ -135,7 +135,7 @@ async def create_superuser(email, password):
             await session.commit()
         except Exception as e:
             sentry_sdk.capture_exception(e)
-            click.echo(f"Error creating object")
+            click.echo("Error creating object")
             return None
 
         click.echo(f"Superuser {email} created successfully!")

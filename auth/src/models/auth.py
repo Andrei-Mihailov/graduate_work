@@ -1,5 +1,7 @@
-from pydantic import BaseModel
 from datetime import datetime, timezone
+
+from pydantic import BaseModel
+
 from models.value_objects import AuthID, UserID
 
 

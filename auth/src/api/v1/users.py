@@ -1,4 +1,5 @@
 from typing import Annotated
+
 from fastapi import APIRouter, Depends, status, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
 import sentry_sdk
@@ -145,6 +146,7 @@ async def change_user_info(
             detail="An error occurred while changing user data",
         )
 
+
 # /api/v1/users/delete
 @router.post(
     "/delete",
@@ -161,8 +163,8 @@ async def delete_user(
     broker_service: BrokerService = Depends(get_broker_service)
 ) -> bool:
     try:
-        tokens = get_tokens_from_cookie(request)    
-        user_params = {'first_name': None, 'last_name': None, 'active': False}   
+        tokens = get_tokens_from_cookie(request)
+        user_params = {'first_name': None, 'last_name': None, 'active': False}
         change_user = await user_service.change_user_info(tokens.access_token, user_params)
         user_responce = UserResponce(uuid=str(change_user.id), email=change_user.email, is_active=False)
         await user_service.logout(
@@ -176,6 +178,7 @@ async def delete_user(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An error occurred while deleting user data",
         )
+
 
 # /api/v1/users/logout
 @router.post(

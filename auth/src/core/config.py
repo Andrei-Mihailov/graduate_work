@@ -46,10 +46,10 @@ class Settings(BaseSettings):
     sentry_sdk_dns: str
     sentry_traces_sample_rate: float
     sentry_profiles_sample_rate: float
-    
+
     class Config:
         env_file = ".env"
-    
+
     @property
     def rabbit_connection(self):
         return f"amqp://{self.rabbit_user}:{self.rabbit_password}@{self.rabbit_host}/"

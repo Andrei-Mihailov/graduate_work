@@ -1,7 +1,6 @@
-import http
-import uuid
 import json
 from abc import ABC
+
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.exc import DBAPIError
@@ -9,9 +8,9 @@ from fastapi.encoders import jsonable_encoder
 from typing import Union
 import backoff
 import sentry_sdk
-
 from redis.exceptions import ConnectionError as conn_err_redis
 from asyncpg.exceptions import PostgresConnectionError as conn_err_pg
+
 from db.redis_db import RedisCache
 from db.postgres_db import AsyncSession
 from models.entity import User, Authentication, Roles, Permissions

@@ -1,10 +1,11 @@
-from .base_service import BaseService
 from uuid import UUID
 from functools import lru_cache
 from typing import Union
+
 from fastapi import Depends
 import sentry_sdk
 
+from .base_service import BaseService
 from core.constains import DEFAULT_ROLE_DATA
 from models.entity import Roles
 from models.user import User

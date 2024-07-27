@@ -1,7 +1,8 @@
 from enum import Enum
-from pydantic import BaseModel as PydanticBaseModel
-import orjson
 from uuid import UUID
+import orjson
+
+from pydantic import BaseModel as PydanticBaseModel
 
 
 def orjson_dumps(v, *, default):

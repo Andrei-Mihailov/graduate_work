@@ -1,6 +1,7 @@
 from fastapi import Depends
 from functools import lru_cache
 import sentry_sdk
+
 from models.entity import Permissions
 from .base_service import BaseService
 from db.redis_db import RedisCache, get_redis
