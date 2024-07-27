@@ -1,5 +1,6 @@
 import pytest
 
+from http import HTTPStatus
 from services.purchase_service import PurchaseService
 from services.promo_code_service import PromoCodeService
 
@@ -29,7 +30,7 @@ async def test_apply_promocode(make_post_request, mock_purchase_service, mock_pr
     query_data = {"promocode": "TESTCODE", "tariff_id": 1}
     url = SERVICE_URL + "/api/v1/promocodes/apply_promocode/"
     response = await make_post_request(url, query_data)
-    assert response.status_code == 200
+    assert response.status_code == HTTPStatus.OK
     assert response.json() == {
         "discount_type": "fixed",
         "discount_value": 10.0,
@@ -43,7 +44,7 @@ async def test_get_active_promocodes(make_get_request, mock_promo_code_service):
     ]
     url = SERVICE_URL + "/api/v1/promocodes/get_active_promocodes/"
     response = await make_get_request(url)
-    assert response.status_code == 200
+    assert response.status_code == HTTPStatus.OK
     assert response.json() == [
         {"code": "PROMO1", "discount_type": "fixed", "discount_value": 10.0, "expiration_date": "2023-12-31T00:00:00"}
     ]
@@ -59,7 +60,7 @@ async def test_use_promocode(make_post_request, mock_purchase_service, mock_prom
     query_data = {"promocode": "TESTCODE", "tariff_id": 1}
     url = SERVICE_URL + "/api/v1/promocodes/use_promocode/"
     response = await make_post_request(url, query_data)
-    assert response.status_code == 200
+    assert response.status_code == HTTPStatus.OK
     assert response.json() == {
         "discount_type": "fixed",
         "discount_value": 10.0,
@@ -74,7 +75,7 @@ async def test_cancel_use_promocode(make_post_request, mock_purchase_service):
     query_data = {"promocode": "TESTCODE", "purchase_id": 1}
     url = SERVICE_URL + "/api/v1/promocodes/cancel_use_promocode/"
     response = await make_post_request(url, query_data)
-    assert response.status_code == 200
+    assert response.status_code == HTTPStatus.OK
     assert response.json() == {
         "discount_type": None,
         "discount_value": 0,
