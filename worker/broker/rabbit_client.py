@@ -10,7 +10,7 @@ from db.postgres_db import check_user
 
 
 @on_exception(expo, (ConnectionError, AMQPConnectionError), max_tries=10)
-def rabbit_connect(queue_name):    
+def rabbit_connect(queue_name):
     connection = pika.BlockingConnection(pika.ConnectionParameters(
                 host=settings.rabbit_host,
                 port=settings.rabbit_port,
@@ -18,7 +18,11 @@ def rabbit_connect(queue_name):
             ))
 
     channel = connection.channel()
-    channel.exchange_declare(exchange="main", exchange_type="direct", durable=True, auto_delete=False)
+    channel.exchange_declare(exchange="main",
+                             exchange_type="direct",
+                             durable=True,
+                             auto_delete=False
+                             )
     channel.queue_declare(queue=queue_name, durable=True)
 
     def callback(ch, method, properties, body):
@@ -30,7 +34,3 @@ def rabbit_connect(queue_name):
 
     print(' [*] Waiting for messages. To exit press CTRL+C')
     channel.start_consuming()
-
-
-
-        

@@ -14,12 +14,13 @@ class Settings(BaseSettings):
     db_host: str = Field("notifications_db", env="POSTGRES_HOST")
     db_port: int = Field(5432, env="POSTGRES_PORT")
     echo_db: bool = Field(False, env="ECHO_DB")
-    
+
     class Config:
         env_file = ".env"
 
     @property
     def db_connection(self):
         return f"postgresql://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"
+
 
 settings = Settings()
