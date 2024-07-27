@@ -5,7 +5,7 @@ from fastapi import status, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from typing import Optional
 
-from core.config import settings
+from config import settings
 
 
 def decode_jwt(
