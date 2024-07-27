@@ -50,7 +50,7 @@ async def test_get_active_promocodes(make_get_request, mock_promo_code_service):
     ]
 
 
-async def test_use_promocode(make_post_request, mock_purchase_service, mock_promo_code_service):
+async def test_use_promocode(make_post_request, mock_purchase_service):
     mock_purchase_service.use_promocode.return_value = {
         "discount_type": "fixed",
         "discount_value": 10.0,
