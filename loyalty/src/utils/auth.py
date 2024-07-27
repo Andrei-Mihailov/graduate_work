@@ -5,7 +5,7 @@ from fastapi import status, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from typing import Optional
 
-from core.config import settings
+from config import settings
 
 
 def decode_jwt(
@@ -18,20 +18,20 @@ def decode_jwt(
     except jwt.exceptions.DecodeError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Неверные учетные данные для проверки подлинности",
+            detail="Invalid authentication credentials",
         )
     except jwt.exceptions.InvalidAlgorithmError:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Недопустимый алгоритм использования токена"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token algorithm"
         )
     except jwt.exceptions.InvalidSignatureError:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Недопустимая подпись токена"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token signature"
         )
     except jwt.exceptions.ExpiredSignatureError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Срок действия токена истек, обновите токен",
+            detail="Token has expired, refresh token",
         )
     return decoded
 
@@ -46,18 +46,18 @@ class JWTBearer(HTTPBearer):
         if not credentials:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Неверный код авторизации.",
+                detail="Invalid authorization code.",
             )
         if not credentials.scheme == "Bearer":
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Может быть принят только токен на предъявителя",
+                detail="Only Bearer token might be accepted",
             )
         decoded_token = self.parse_token(credentials.credentials)
         if not decoded_token:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Недействительный или просроченный токен.",
+                detail="Invalid or expired token.",
             )
 
         if self.check_user:
@@ -69,7 +69,7 @@ class JWTBearer(HTTPBearer):
             )
             if response.status != status.HTTP_202_ACCEPTED:
                 raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN, detail="Пользователь не существует"
+                    status_code=status.HTTP_403_FORBIDDEN, detail="User doesn't exist"
                 )
 
         return decoded_token

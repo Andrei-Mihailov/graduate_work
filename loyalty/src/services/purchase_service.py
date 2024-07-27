@@ -26,7 +26,7 @@ class PurchaseService(BaseService):
         elif promocode.discount_type == "trial":
             final_amount = 0
         else:
-            raise ValueError(f"Неподдерживаемый тип скидки: {promocode.discount_type}")
+            raise ValueError(f"Unsupported discount type: {promocode.discount_type}")
 
         return max(final_amount, 0)
 
