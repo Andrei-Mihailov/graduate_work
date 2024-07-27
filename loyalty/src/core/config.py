@@ -36,8 +36,10 @@ class Settings(BaseSettings):
     sentry_traces_sample_rate: float
     sentry_profiles_sample_rate: float
 
+    service_port: int
+
     class Config:
-        env_file = ".env.example"
+        env_file = ".env"
         case_sensitive = False
 
 
