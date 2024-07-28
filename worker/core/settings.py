@@ -17,6 +17,7 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
+        case_sensitive = False
 
     @property
     def db_connection(self):
