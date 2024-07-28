@@ -27,7 +27,7 @@ def rabbit_connect(queue_name):
     channel.queue_declare(queue=queue_name, durable=True)
 
     def callback(ch, method, properties, body):
-        logger.info("Received message %", body)
+        logger.info("Received message %s" % body)
         dict_user = json.loads(body.decode('utf-8'))
         create_or_update_user(uuid=dict_user['uuid'], email=dict_user['email'], is_active=dict_user['is_active'])
 
