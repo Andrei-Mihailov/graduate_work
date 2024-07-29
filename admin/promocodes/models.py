@@ -52,7 +52,7 @@ class PromoCode(models.Model):
         if self.is_deleted or not self.is_active:
             cache.delete(f"promocode:{self.id}")
         else:
-            exp_time = (self.expiration_date - datetime.datetime.now()).total_seconds()
+            exp_time = (self.expiration_date - datetime.datetime.now().date()).total_seconds()
             cache.set(f"promocode:{self.code}", self.id, exp_time)
 
 
