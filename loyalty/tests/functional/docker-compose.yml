@@ -3,7 +3,7 @@ version: "3"
 services:
   redis:
     image: redis:7.2.4
-    container_name: redis-auth-test
+    container_name: redis-loyalty-test
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       timeout: 10s
@@ -14,7 +14,7 @@ services:
 
   db:
     image: postgres:13
-    container_name: pgdb-auth-test
+    container_name: pgdb-loyalty-test
     environment:
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${DB_USER}
@@ -22,7 +22,7 @@ services:
     ports:
       - "${DB_PORT}:5432"  # Expose the port for PostgreSQL
     volumes:
-      - pgdbauth-test:/var/lib/postgresql/data/
+      - pgdloyalty-test:/var/lib/postgresql/data/
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d ${DB_NAME} -U ${DB_USER}"]
       interval: 5s
@@ -32,9 +32,9 @@ services:
   app:
     build:
       context: ..
-      dockerfile: ../Dockerfile
+      dockerfile: ../loyalty.Dockerfile
     command: python src/main.py
-    container_name: solution-auth-test
+    container_name: solution-loyalty-test
     depends_on:
       redis:
         condition: service_healthy
@@ -48,7 +48,7 @@ services:
       context: ./tests
       dockerfile: Dockerfile
     command: pytest -v tests/test.py
-    container_name: test-auth-test
+    container_name: test-loyalty-test
     depends_on:
       redis:
         condition: service_healthy
@@ -60,4 +60,4 @@ services:
       - ../.env
 
 volumes:
-  pgdbauth-test:
+  pgdloyalty-test:

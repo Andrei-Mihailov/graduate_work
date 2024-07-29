@@ -23,7 +23,7 @@ class User(Base):
 Base.metadata.create_all(bind=engine)
 
 
-def check_user(uuid: str, email: str, is_active: bool):
+def create_or_update_user(uuid: str, email: str, is_active: bool):
     with Session(autoflush=False, bind=engine) as db:
         new_user = db.query(User).filter(User.uuid == uuid).first()
         if new_user is None:

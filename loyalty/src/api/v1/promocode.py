@@ -44,19 +44,28 @@ async def apply_promocode(
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Tariff not found")
 
         promocode = await promo_code_service.get_valid_promocode(apply.promocode, user["id"])
-        if promocode == 'not found':
-            raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND, detail="Promocode not found or expired"
-            )
-        elif promocode == 'User not found':
-            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="User not found")
-        elif promocode == 'not access':
-            raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN, detail="You have not access to this promocode"
-            )
-        elif promocode == 'expired':
-            raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Promocode expired")
-
+        # вообще у нас python 3.9 версии используется, в котором не доступен match-case, но хорошо
+        match promocode:
+            case 'not found':
+                raise HTTPException(
+                    status_code=HTTPStatus.NOT_FOUND,
+                    detail="Promocode not found or expired"
+                )
+            case 'User not found':
+                raise HTTPException(
+                    status_code=HTTPStatus.NOT_FOUND,
+                    detail="User not found"
+                )
+            case 'not access':
+                raise HTTPException(
+                    status_code=HTTPStatus.FORBIDDEN,
+                    detail="You have not access to this promocode"
+                )
+            case 'expired':
+                raise HTTPException(
+                    status_code=HTTPStatus.BAD_REQUEST,
+                    detail="Promocode expired"
+                )
         final_amount = await purchase_service.calculate_final_amount(tariff.price, promocode)
 
         return PromocodeResponse(
