@@ -68,7 +68,6 @@ class User(Base):
         active: bool = True,
         is_staff: bool = False,
         is_superuser: bool = False,
-        active: bool = True
     ) -> None:
         self.email = email
         self.password = hash_password(password)
