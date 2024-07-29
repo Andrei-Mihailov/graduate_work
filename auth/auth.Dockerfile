@@ -7,7 +7,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 COPY auth/requirements.txt requirements.txt
 COPY auth/alembic.ini alembic.ini
 
-RUN apt-get update
+RUN apt-get update && pip install --no-cache-dir --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY auth/src ./src
