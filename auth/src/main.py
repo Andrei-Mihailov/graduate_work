@@ -127,6 +127,7 @@ async def create_superuser(email, password):
             "email": email,
             "password": password,
             "is_staff": True,
+            "active": True,
             "is_superuser": True,
         }
         instance = User(**superuser_data)
@@ -137,7 +138,7 @@ async def create_superuser(email, password):
             sentry_sdk.capture_exception(e)
             click.echo("Error creating object")
             return None
-
+        sentry_sdk.capture_message(f"Superuser {email} created successfully!")
         click.echo(f"Superuser {email} created successfully!")
 
 
