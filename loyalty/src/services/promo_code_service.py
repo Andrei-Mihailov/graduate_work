@@ -9,7 +9,7 @@ from models.promocode import PromoCode
 from .base_service import BaseService
 from db.postgres_db import get_session
 from db.redis_db import RedisCache, get_redis
-from .access_service import AccessService
+from .access_service import AccessService, get_access_service
 
 
 class PromoCodeService(BaseService):
@@ -77,5 +77,6 @@ class PromoCodeService(BaseService):
 async def get_promo_code_service(
     redis: RedisCache = Depends(get_redis),
     db: AsyncSession = Depends(get_session),
+    access_service: AccessService = Depends(get_access_service),
 ) -> PromoCodeService:
-    return PromoCodeService(redis, db)
+    return PromoCodeService(redis, db, access_service)

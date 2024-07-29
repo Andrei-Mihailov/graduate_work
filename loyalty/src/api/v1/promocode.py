@@ -43,7 +43,7 @@ async def apply_promocode(
         if not tariff:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Tariff not found")
 
-        promocode = await promo_code_service.get_valid_promocode(apply.promocode, user["id"])
+        promocode = await promo_code_service.get_valid_promocode(apply.promocode, user["sub"])
         # вообще у нас python 3.9 версии используется, в котором не доступен match-case, но хорошо
         match promocode:
             case 'not found':
@@ -95,7 +95,7 @@ async def get_active_promocodes(
     user: Annotated[dict, Depends(security_jwt)],
     promo_code_service: PromoCodeService = Depends(get_promo_code_service),
 ) -> List[ActivePromocodeResponse]:
-    result = await promo_code_service.get_active_promocodes_for_user(user["id"])
+    result = await promo_code_service.get_active_promocodes_for_user(user["sub"])
     if not result:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="User not found")
     return result
@@ -113,7 +113,7 @@ async def use_promocode(
     purchase_service: PurchaseService = Depends(get_purchase_service)
 ) -> PromocodeResponse:
     try:
-        result = await purchase_service.use_promocode(user["id"], apply.promocode, apply.tariff_id)
+        result = await purchase_service.use_promocode(user["sub"], apply.promocode, apply.tariff_id)
         if not result:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Tariff not found")
         return PromocodeResponse(
@@ -143,7 +143,7 @@ async def cancel_use_promocode(
     purchase_service: PurchaseService = Depends(get_purchase_service),
 ) -> PromocodeResponse:
     try:
-        purchase = await purchase_service.get_purchase(cancel.purchase_id, user["id"])
+        purchase = await purchase_service.get_purchase(cancel.purchase_id, user["sub"])
         if not purchase:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Data purchase not found")
         # Обновляем стоимость покупки на стандартную
