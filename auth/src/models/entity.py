@@ -76,7 +76,6 @@ class User(Base):
         self.active = active
         self.is_staff = is_staff
         self.is_superuser = is_superuser
-        self.active: bool = True
 
     def check_password(self, password: str) -> bool:
         return validate_password(self.password, password)
