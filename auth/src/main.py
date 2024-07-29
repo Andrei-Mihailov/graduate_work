@@ -127,7 +127,10 @@ async def create_superuser(email, password):
             "email": email,
             "password": password,
             "is_staff": True,
+            "active": True,
             "is_superuser": True,
+            "first_name": "superuser",
+            "last_name": "superuser"
         }
         instance = User(**superuser_data)
         session.add(instance)

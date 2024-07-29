@@ -67,6 +67,7 @@ class User(Base):
         last_name: str = None,
         is_staff: bool = False,
         is_superuser: bool = False,
+        active: bool = True
     ) -> None:
         self.email = email
         self.password = hash_password(password)
@@ -74,6 +75,7 @@ class User(Base):
         self.last_name = last_name
         self.is_staff = is_staff
         self.is_superuser = is_superuser
+        self.active: bool = True
 
     def check_password(self, password: str) -> bool:
         return validate_password(self.password, password)
