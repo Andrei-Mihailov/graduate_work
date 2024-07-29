@@ -1,5 +1,6 @@
 import sentry_sdk
 import textwrap
+import datetime
 
 from django.db import models
 from django.core.cache import cache
@@ -51,7 +52,8 @@ class PromoCode(models.Model):
         if self.is_deleted or not self.is_active:
             cache.delete(f"promocode:{self.id}")
         else:
-            cache.set(f"promocode:{self.code}", self.id, self.expiration_date)
+            exp_time = (self.expiration_date - datetime.datetime.now()).total_seconds()
+            cache.set(f"promocode:{self.code}", self.id, exp_time)
 
 
 class Tariff(models.Model):
