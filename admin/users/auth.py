@@ -41,7 +41,7 @@ class CustomBackend(BaseBackend):
             return None
 
         try:
-            user, created = User.objects.get_or_create(email=data.get("email"))
+            user, created = User.objects.get_or_create(email=data.get("email"), username=data.get("email"))
             if created:
                 user.username = data.get("email")
                 user.first_name = data.get("first_name", "anonym")
