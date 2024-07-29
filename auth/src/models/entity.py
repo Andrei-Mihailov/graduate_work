@@ -65,6 +65,7 @@ class User(Base):
         password: str,
         first_name: str = None,
         last_name: str = None,
+        active: bool = True,
         is_staff: bool = False,
         is_superuser: bool = False,
         active: bool = True
@@ -73,6 +74,7 @@ class User(Base):
         self.password = hash_password(password)
         self.first_name = first_name
         self.last_name = last_name
+        self.active = active
         self.is_staff = is_staff
         self.is_superuser = is_superuser
         self.active: bool = True

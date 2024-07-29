@@ -140,7 +140,7 @@ async def create_superuser(email, password):
             sentry_sdk.capture_exception(e)
             click.echo("Error creating object")
             return None
-
+        sentry_sdk.capture_message(f"Superuser {email} created successfully!")
         click.echo(f"Superuser {email} created successfully!")
 
 
