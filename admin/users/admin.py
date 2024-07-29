@@ -8,8 +8,34 @@ from . import models
 from .forms import XForm
 
 
+class UsersInline(admin.TabularInline):
+    model = models.User.group.through
+
+    extra = 0
+    show_change_link = False
+    verbose_name = "Пользователь"
+    verbose_name_plural = "Пользователи"
+
+    def has_add_permission(self, request, *kwargs):
+        return False
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related('user')
+
+    def get_readonly_fields(self, request, obj=None):
+        return ['email', 'is_active'] if obj else []
+
+    def email(self, obj):
+        return obj.user.email if obj.user else None
+
+    def is_active(self, obj):
+        return obj.user.is_active if obj.user else None
+
+
 class Group(admin.ModelAdmin):
     list_display = ("name", "description")
+    inlines = [UsersInline]
 
 
 class User(admin.ModelAdmin):
@@ -65,11 +91,11 @@ class User(admin.ModelAdmin):
                         avu.user.add(obj)
                     count_users += 1
                     sentry_sdk.capture_message(f'Применен промокод: {promo_code.code}. Пользователь - {obj.email}')
-                    mess = f"/apply_promocode?promocode_id={promo_code_id}&tariff={tariff_id}"
+                    mess = f"/apply_promocode?promocode_str={promo_code}&tariff={tariff_id}"
                     type_mess = messages.SUCCESS
                 else:
                     if count_users:
-                        mess = f"/apply_promocode?promocode_id={promo_code_id}&tariff={tariff_id} -----> Применено промокодов: {count_users}"
+                        mess = f"/apply_promocode?promocode_str={promo_code}&tariff={tariff_id} -----> Применено промокодов: {count_users}"
 
                         type_mess = messages.WARNING
                     else:
